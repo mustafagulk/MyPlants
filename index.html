@@ -190,6 +190,9 @@
   .sub-both  { background:#f8fafc; border-color:#cbd5e1; color:#475569; }
   .sub-warn  { background:#fefce8; border-color:#fde047; color:#854d0e; }
   .sub-strong{ background:#dcfce7; border-color:#4ade80; color:#15803d; font-weight:800; }
+  .sub-no    { background:#fee2e2; border-color:#fca5a5; color:#991b1b; font-weight:800; }
+
+  .notes-box {
     background: #f8fafc; border-radius: 8px;
     padding: 9px 12px; font-size: 11px; color: #374151;
     line-height: 1.6; border-left: 3px solid #d1d5db;
@@ -300,9 +303,7 @@
   </div>
 </header>
 
-<!-- ════════════════════════════════════════════════════════
-     PAGE 1 — PLANT ADVISOR
-════════════════════════════════════════════════════════ -->
+<!-- PAGE 1 — PLANT ADVISOR -->
 <div class="page active" id="page-advisor">
 <div class="container">
 
@@ -325,9 +326,7 @@
 </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════════
-     PAGE 2 — FERTILIZER CALCULATOR
-════════════════════════════════════════════════════════ -->
+<!-- PAGE 2 — FERTILIZER CALCULATOR -->
 <div class="page" id="page-calculator">
 <div class="container">
 
@@ -426,9 +425,7 @@
 </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════════
-     PAGE 3 — HOW TO EDIT
-════════════════════════════════════════════════════════ -->
+<!-- PAGE 3 — HOW TO EDIT -->
 <div class="page" id="page-edit">
 <div class="container">
 
@@ -449,42 +446,19 @@
   <div class="card">
     <div class="card-title">🔍 Where to find each type of data</div>
     <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.7">
-
       <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px;border-left:4px solid #16a34a">
         <strong>Plant Advisor nutrient values (N, P, K, Ca, Mg, EC, pH, notes, fertilizer doses)</strong><br>
-        Search for <code>const NUTRIENT_DATA</code> — this is the main data block. Each plant has a section like <code>tomato: { "Seedling": { N: { val: "40–70 ppm", level: "low" }, ... } }</code><br>
-        Change the <code>val</code> text to update the displayed value. Change <code>level</code> to update the colour: use <code>low</code>, <code>moderate</code>, <code>high</code>, or <code>very high</code>.
+        Search for <code>const NUTRIENT_DATA</code> — this is the main data block.
       </div>
-
       <div style="background:#fff7ed;border-radius:10px;padding:14px 16px;border-left:4px solid #ea580c">
         <strong>Fertilizer dose tables (the ppm numbers in Bio Grow / Bio Bloom / Primaster tables)</strong><br>
-        Search for <code>Bio Grow</code> or <code>Bio Bloom</code> — you'll find the table rows. Each row has <code>~40</code>, <code>~80</code> etc. inside <code>&lt;span&gt;</code> tags. Just change the number. Also change the class (<code>lvl-low</code>, <code>lvl-moderate</code>, <code>lvl-high</code>, <code>lvl-vhigh</code>) to update the colour.
+        Search for <code>Bio Grow</code> or <code>Bio Bloom</code> — you'll find the table rows.
       </div>
-
       <div style="background:#eff6ff;border-radius:10px;padding:14px 16px;border-left:4px solid #2563eb">
         <strong>Adding a new plant to the Advisor</strong><br>
-        Search for <code>const PLANTS</code> — add a new entry like <code>{ id: "basil", emoji: "🌿", name: "Basil", stages: ["Seedling", "Vegetative"] }</code><br>
-        Then search for <code>const NUTRIENT_DATA</code> and add a matching <code>basil: { "Seedling": { N: { val: "...", level: "..." }, ... } }</code> block following the same pattern as the other plants.
+        Search for <code>const PLANTS</code> — add a new entry, then match it in <code>NUTRIENT_DATA</code>.
       </div>
-
-      <div style="background:#fef9c3;border-radius:10px;padding:14px 16px;border-left:4px solid #ca8a04">
-        <strong>Changing fertilizer doses shown in the Plant Advisor cards</strong><br>
-        Inside <code>NUTRIENT_DATA</code>, each stage has <code>biogrow</code>, <code>biobloom</code>, and <code>lemon</code> fields. For example: <code>biogrow: "3–4ml/L"</code>. Change the text to whatever dose you want shown. Use <code>"—"</code> to hide a fertilizer for that stage.
-      </div>
-
     </div>
-  </div>
-
-  <div class="card" style="margin-top:16px">
-    <div class="card-title">💡 Tips</div>
-    <ul style="font-size:13px;line-height:2;padding-left:18px;color:#374151">
-      <li>Always keep a <strong>backup copy</strong> of the file before editing</li>
-      <li>If something breaks after editing, undo with <code>Ctrl+Z</code> and save again</li>
-      <li>The quotes around values matter — keep them: <code>"40–70 ppm"</code> not <code>40–70 ppm</code></li>
-      <li>The commas between entries matter too — if you add a new plant, make sure there's a comma after the previous one</li>
-      <li>After saving, just refresh the browser (F5) — no reinstalling needed</li>
-      <li>VS Code will highlight errors in red if you make a syntax mistake</li>
-    </ul>
   </div>
 
 </div>
@@ -501,20 +475,24 @@ function showPage(name) {
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 const PLANTS = [
-  { id: "tomato",     emoji: "🍅", name: "Tomato",                  stages: ["Seedling (weeks 1–3)", "Vegetative (weeks 4–7)", "Flowering & Fruiting"],                                                                   height:"100–200 cm", pot:"15–20L", substrate:"✅ Coco or Soil",              subNote:"Tall plant, good airflow. Coco preferred for liquid feeding control." },
-  { id: "potato",     emoji: "🥔", name: "Potato",                  stages: ["Vegetative (weeks 1–6)", "Tuber Bulking (weeks 7–12)"],                                                                                     height:"50–100 cm",  pot:"20–30L", substrate:"✅ Coco preferred",             subNote:"Tubers expand well in airy coco. Low mushroom risk on surface." },
-  { id: "lemon",      emoji: "🍋", name: "Lemon",                   stages: ["Year-round (Maintenance)", "Flowering & Fruiting"],                                                                                          height:"80–150 cm",  pot:"30–50L", substrate:"✅ Coco or Soil",              subNote:"Tall tree in pot. Either works. Coco gives better root aeration." },
-  { id: "melon",      emoji: "🍈", name: "Melon",                   stages: ["Vegetative (weeks 1–4)", "Fruiting & Swelling"],                                                                                             height:"30–50 cm",   pot:"15–20L", substrate:"⚠️ Coco preferred",            subNote:"Low sprawling vine — higher mushroom risk in soil. Coco recommended." },
-  { id: "chili",      emoji: "🌶️", name: "Red Chili",               stages: ["Vegetative (weeks 1–5)", "Flowering & Fruiting"],                                                                                            height:"60–120 cm",  pot:"10–15L", substrate:"✅ Coco or Soil",              subNote:"Medium height, good airflow. Either substrate works fine." },
-  { id: "pepper",     emoji: "🫑", name: "Bell Pepper",             stages: ["Vegetative (weeks 1–5)", "Fruiting & Colour Development"],                                                                                   height:"60–100 cm",  pot:"10–15L", substrate:"✅ Coco preferred",             subNote:"Coco preferred for consistent moisture control (prevents BER)." },
-  { id: "thyme",      emoji: "🌿", name: "Thyme",                   stages: ["Year-round (Herb)"],                                                                                                                         height:"20–40 cm",   pot:"3–5L",   substrate:"⚠️ Coco preferred",            subNote:"Low lying ground cover — higher mushroom risk in soil. Coco keeps surface drier." },
-  { id: "coriander",  emoji: "🌿", name: "Coriander",               stages: ["Year-round (Herb)"],                                                                                                                         height:"30–60 cm",   pot:"3–5L",   substrate:"⚠️ Coco preferred",            subNote:"Low-medium, dense foliage near ground. Some mushroom risk. Coco keeps surface drier." },
-  { id: "mint",       emoji: "🌿", name: "Mint",                    stages: ["Year-round (Herb)"],                                                                                                                         height:"30–90 cm",   pot:"5–10L",  substrate:"⚠️ Coco preferred",            subNote:"Sprawling — some mushroom risk. Always grow in a contained pot — spreads aggressively." },
-  { id: "blackberry", emoji: "🫐", name: "Blackberry",              stages: ["Vegetative / Cane Growth", "Flowering & Fruiting"],                                                                                          height:"150–300 cm", pot:"20–30L", substrate:"✅ Either works",               subNote:"Tall canes, good airflow. Either substrate works. Watch pH in coco (6.2–6.5)." },
-  { id: "strawberry", emoji: "🍓", name: "Strawberry",              stages: ["Vegetative / Runner Stage", "Flowering & Fruiting"],                                                                                         height:"15–30 cm",   pot:"5–8L",   substrate:"✅✅ Coco strongly preferred",  subNote:"Very low lying — high mushroom risk in soil. Coco is ideal, proven by research." },
-  { id: "apple",      emoji: "🍏", name: "Apple (Golden Delicious)", stages: ["Spring Vegetative Growth", "Flowering & Fruit Set", "Fruit Swelling & Ripening"],                                                           height:"100–200 cm", pot:"30–50L", substrate:"✅ Either works",               subNote:"Tall tree, good airflow. Either substrate fine. Large pot essential." },
-  { id: "gg_auto",    emoji: "🦍", name: "Gorilla Glue Auto",       stages: ["Seedling (weeks 1–2)", "Vegetative (weeks 3–5)", "Pre-Flower (weeks 4–5)", "Full Flower & Bud Swelling (weeks 6–9)", "Flush (final 1–2 weeks)"], height:"80–120 cm",  pot:"15–20L", substrate:"✅ Coco strongly preferred",  subNote:"Medium-tall, dense canopy. Coco preferred — faster flush, better nutrient control." },
-  { id: "guava_auto", emoji: "🍈", name: "Guava Auto",              stages: ["Seedling (weeks 1–2)", "Vegetative (weeks 3–5)", "Flowering (weeks 5–8)", "Flush (final 1 week)"],                                           height:"50–80 cm",   pot:"10–15L", substrate:"✅ Coco preferred",             subNote:"Compact, ideal for grow boxes. Coco preferred for cannabis pH control." },
+  { id: "tomato",           emoji: "🍅", name: "Tomato - San Marzano",                              stages: ["Flowering & Fruiting","Seedling (weeks 1–3)", "Vegetative (weeks 4–7)" ],                                                                   height:"100–200 cm", pot:"15–20L", soil:"Soil",              subNote:"Tall plant, good airflow. Coco preferred for liquid feeding control." },
+  { id: "potato",           emoji: "🥔", name: "Potato",                                             stages: ["Vegetative (weeks 1–6)", "Tuber Bulking (weeks 7–12)"],                                                                                     height:"50–100 cm",  pot:"20L", soil:"✅ Coco ",             subNote:"Tubers expand well in airy coco. Low mushroom risk on surface." },
+  { id: "lemon",            emoji: "🍋", name: "Lemon - Citrus Limon",                               stages: ["Flowering & Fruiting", "Year-round (Maintenance)"],                                                                                          height:"80–150 cm",  pot:"30–50L?", soil:"✅ Soil",              subNote:"Tall tree in pot. Either works. Coco gives better root aeration." },
+  { id: "melon",            emoji: "🍈", name: "Melon - Honey Melon",                                stages: ["Vegetative (weeks 1–4)", "Fruiting & Swelling"],                                                                                             height:"30–50 cm",   pot:"15–20L?", soil:"⚠️ Coco for now",            subNote:"Low sprawling vine — higher mushroom risk in soil. Coco recommended." },
+  { id: "chili",            emoji: "🌶️", name: "Red Chili",                                          stages: ["Vegetative (weeks 1–5)", "Flowering & Fruiting"],                                                                                            height:"60–120 cm",  pot:"10–15L?", soil:"✅ Coco for now",              subNote:"Medium height, good airflow. Either soil works fine." },
+  { id: "pepper",           emoji: "🫑", name: "Bell Pepper",                                        stages: ["Vegetative (weeks 1–5)", "Fruiting & Colour Development"],                                                                                   height:"60–100 cm",  pot:"10–15L?", soil:"✅ Coco for now",             subNote:"Coco preferred for consistent moisture control (prevents BER)." },
+  { id: "thyme",            emoji: "🌿", name: "Thyme",                                              stages: ["Year-round (Herb)"],                                                                                                                         height:"20–40 cm",   pot:"3–5L?",   soil:"⚠️ Coco for now",            subNote:"Low lying ground cover — higher mushroom risk in soil. Coco keeps surface drier." },
+  { id: "coriander",        emoji: "🌿", name: "Coriander - Coriandrum Sativum",                     stages: ["Year-round (Herb)"],                                                                                                                         height:"30–60 cm",   pot:"3–5L?",   soil:"⚠️ Coco for now",            subNote:"Low-medium, dense foliage near ground. Some mushroom risk. Coco keeps surface drier." },
+  { id: "mint",             emoji: "🌿", name: "Mint",                                               stages: ["Year-round (Herb)"],                                                                                                                         height:"30–90 cm",   pot:"5–10L?",  soil:"⚠️ Coco for now",            subNote:"Sprawling — some mushroom risk. Always grow in a contained pot — spreads aggressively." },
+  { id: "blackberry",       emoji: "🫐", name: "Blackberry - Asterina",                              stages: ["Flowering & Fruiting" , "Vegetative / Cane Growth"],                                                                                          height:"150–300 cm", pot:"20–30L?", soil:"✅ Soil",               subNote:"Tall canes, good airflow. Either soil works. Watch pH in coco (6.2–6.5)." },
+  { id: "strawberry",       emoji: "🍓", name: "Strawberry - Frageria",                              stages: ["Flowering & Fruiting", "Vegetative / Runner Stage"],                                                                                         height:"15–30 cm",   pot:"5–8L?",   soil:"✅ Soil",  subNote:"Very low lying — high mushroom risk in soil. Coco is ideal, proven by research." },
+  { id: "apple",            emoji: "🍏", name: "Apple - Golden Delicious",                           stages: ["Fruit Swelling & Ripening" "Spring Vegetative Growth", "Flowering & Fruit Set"],                                                           height:"100–200 cm", pot:"30–50L?", soil:"✅ Soil",               subNote:"Tall tree, good airflow. Either soil fine. Large pot essential." },
+  { id: "yellow_chilli",    emoji: "🌶️", name: "Yellow Chilli Hot - Capsicum chinense (Habanero / Superhot)", stages: ["Flowering & Fruiting" ,"Vegetative (weeks 1–5)"],                                                                                height:"60–100 cm",  pot:"10–15L?", soil:"✅ Soil",              subNote:"Compact, bushy. Either soil works well. Let coco get drier than usual during fruiting for more heat." },
+  { id: "blueberry",        emoji: "🫐", name: "Blueberry - Vaccinium (Sunshine Blue)",              stages: ["Flowering & Fruiting", "Vegetative / Establishment"],                                                                                        height:"100–200 cm", pot:"20–30L?", soil:"⛔ Soil",         subNote:"Requires ericaceous/peat-based acid mix ONLY. pH 4.5–5.5 is non-negotiable. Standard coco is too alkaline." },
+  { id: "cherry_tomato",    emoji: "🍅", name: "Cherry Tomato Red - Solanum lycopersicum",           stages: ["Flowering & Fruiting", "Seedling (weeks 1–3)", "Vegetative (weeks 4–7)"],                                                                   height:"120–180 cm", pot:"15–20L?", soil:"✅ Soil",              subNote:"Indeterminate vine — needs strong staking. Coco preferred for EC control." },
+  { id: "strawberry_meraldo", emoji: "🍓", name: "Strawberry - Meraldo Fragaria × ananassa",        stages: ["Flowering & Fruiting" ,"Seedling / Establishment (weeks 1–3)", "Vegetative / Runner & Crown (weeks 4–8)"],                                  height:"15–25 cm",   pot:"5–10L?",  soil:"✅ Soil",              subNote:"Compact everbearing balcony variety. Excellent drainage essential. Can flower almost continuously." },
+  { id: "gg_auto",          emoji: "🦍", name: "Gorilla Glue Auto",                                  stages: ["Seedling (weeks 1–2)", "Vegetative (weeks 3–5)", "Pre-Flower (weeks 4–5)", "Full Flower & Bud Swelling (weeks 6–9)", "Flush (final 1–2 weeks)"], height:"80–120 cm", pot:"20L", soil:"✅ Coco",  subNote:"Medium-tall, dense canopy. Coco preferred — faster flush, better nutrient control." },
+  { id: "guava_auto",       emoji: "🍈", name: "Guava Auto",                                         stages: ["Seedling (weeks 1–2)", "Vegetative (weeks 3–5)", "Flowering (weeks 5–8)", "Flush (final 1 week)"],                                           height:"50–80 cm",   pot:"20L", soil:"✅ Coco",             subNote:"Compact, ideal for grow boxes. Coco preferred for cannabis pH control." },
 ];
 
 const NUTRIENT_DATA = {
@@ -565,6 +543,86 @@ const NUTRIENT_DATA = {
     "Flowering & Fruit Set":      { N:{val:"80–120 ppm",level:"moderate"}, P:{val:"60–80 ppm",level:"high"}, K:{val:"150–200 ppm",level:"high"}, Ca:{val:"200–250 ppm",level:"very high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"⚠️ Do NOT push K now — high K antagonises Ca uptake and causes bitter pit. Consistent watering > extra nutrients.", biogrow:"1ml/L", biobloom:"1ml/L", lemon:"—" },
     "Fruit Swelling & Ripening":  { N:{val:"50–80 ppm",level:"low"}, P:{val:"30–50 ppm",level:"low"}, K:{val:"280–380 ppm",level:"very high"}, Ca:{val:"200–250 ppm",level:"very high"}, Mg:{val:"50 ppm",level:"moderate"}, ec:"1.6–2.2", ph:"6.0–6.5", notes:"Golden Delicious highly bitter-pit prone. Consistent watering > extra nutrients. Harvest when fully golden-yellow.", biogrow:"—", biobloom:"2ml/L", lemon:"1ml/L" },
   },
+  // ── NEW PLANTS ──────────────────────────────────────────────────────────────
+  yellow_chilli: {
+    "Vegetative (weeks 1–5)": {
+      N:{val:"150–200 ppm",level:"high"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"150–200 ppm",level:"high"},
+      Ca:{val:"130–160 ppm",level:"moderate"}, Mg:{val:"40–60 ppm",level:"moderate"},
+      ec:"1.4–1.8", ph:"6.0–6.5",
+      notes:"Habaneros & superhots need strong veg growth for a big bushy plant before fruiting. More foliage = more fruit sites. Slightly drier coco is fine — let top inch dry between waterings.",
+      biogrow:"Full dose (3–4ml/L)", biobloom:"—", lemon:"1ml/L"
+    },
+    "Flowering & Fruiting": {
+      N:{val:"80–120 ppm",level:"moderate"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"280–380 ppm",level:"very high"},
+      Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50 ppm",level:"moderate"},
+      ec:"1.8–2.4", ph:"6.0–6.5",
+      notes:"Reduce N to stop leaf growth — too much N reduces capsaicin (heat). K is key for heat, colour and flavour intensity. ⚠️ Slight drought stress during fruiting deliberately increases capsaicin — let coco get drier than usual.",
+      biogrow:"—", biobloom:"2–3ml/L", lemon:"1ml/L"
+    },
+  },
+  blueberry: {
+    "Vegetative / Establishment": {
+      N:{val:"80–120 ppm",level:"moderate"}, P:{val:"30–50 ppm",level:"low"}, K:{val:"100–150 ppm",level:"moderate"},
+      Ca:{val:"80–120 ppm",level:"low"}, Mg:{val:"40–60 ppm",level:"moderate"},
+      ec:"0.8–1.4", ph:"4.5–5.5",
+      notes:"⚠️ SPECIAL: Use ONLY acid-formulated fertilizer (rhododendron/azalea feed or ammonium sulfate). Standard fertilizers use wrong nitrogen form. pH MUST be 4.5–5.5 — cannot grow at higher pH. Standard coco coir is NOT suitable. Very prone to iron chlorosis above pH 5.5.",
+      biogrow:"⚠️ Do NOT use — wrong nitrogen form", biobloom:"—", lemon:"—"
+    },
+    "Flowering & Fruiting": {
+      N:{val:"50–80 ppm",level:"low"}, P:{val:"30–50 ppm",level:"low"}, K:{val:"150–250 ppm",level:"high"},
+      Ca:{val:"80–120 ppm",level:"low"}, Mg:{val:"40–60 ppm",level:"moderate"},
+      ec:"1.0–1.8", ph:"4.5–5.5",
+      notes:"⚠️ Reduce acid fertilizer to ½ dose at fruiting. Increase K using potassium sulfate (acidic K source). K drives berry sweetness (Brix), fruit size and blue pigment (anthocyanin). Keep soil consistently moist — shallow roots dry out fast.",
+      biogrow:"⚠️ Do NOT use — wrong nitrogen form", biobloom:"—", lemon:"—"
+    },
+  },
+  cherry_tomato: {
+    "Seedling (weeks 1–3)": {
+      N:{val:"80–130 ppm",level:"moderate"}, P:{val:"50–80 ppm",level:"high"}, K:{val:"80–130 ppm",level:"moderate"},
+      Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"40–60 ppm",level:"moderate"},
+      ec:"0.8–1.2", ph:"6.0–6.5",
+      notes:"Keep N conservative at seedling stage to avoid leggy growth. Cherry tomatoes are vigorous but start gently. Start CalMag from day 1 in coco — BER risk begins at seedling stage.",
+      biogrow:"½ strength (1–2ml/L)", biobloom:"—", lemon:"—"
+    },
+    "Vegetative (weeks 4–7)": {
+      N:{val:"130–200 ppm",level:"high"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"180–250 ppm",level:"high"},
+      Ca:{val:"180–220 ppm",level:"very high"}, Mg:{val:"50–70 ppm",level:"moderate"},
+      ec:"1.4–1.8", ph:"6.0–6.5",
+      notes:"Vigorous indeterminate growth — needs strong N but slightly lower EC than large beefsteak types. Build strong upright canes for heavy fruit trusses. CalMag every watering — do not skip.",
+      biogrow:"Full dose (3–4ml/L)", biobloom:"—", lemon:"1ml/L"
+    },
+    "Flowering & Fruiting": {
+      N:{val:"70–110 ppm",level:"moderate"}, P:{val:"60–80 ppm",level:"high"}, K:{val:"320–420 ppm",level:"very high"},
+      Ca:{val:"200–250 ppm",level:"very high"}, Mg:{val:"50–60 ppm",level:"moderate"},
+      ec:"1.8–2.2", ph:"6.0–6.5",
+      notes:"Reduce N sharply — dense sweet flavour develops best under low N. High K drives the sweet-acidic flavour balance and deep red colour. Slight controlled EC stress concentrates sugars. Never reduce Ca — BER risk peaks during rapid fruit swelling.",
+      biogrow:"—", biobloom:"2–3ml/L", lemon:"1ml/L for K+S"
+    },
+  },
+  strawberry_meraldo: {
+    "Seedling / Establishment (weeks 1–3)": {
+      N:{val:"60–100 ppm",level:"low"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"80–120 ppm",level:"moderate"},
+      Ca:{val:"130–160 ppm",level:"moderate"}, Mg:{val:"30–50 ppm",level:"low"},
+      ec:"0.8–1.2", ph:"5.8–6.5",
+      notes:"Keep N conservative — 'Meraldo' is a compact variety. Too much N early = lots of leaves, fewer flowers. Good P early supports the fibrous shallow root system. CalMag every watering from day 1.",
+      biogrow:"½ strength (1–2ml/L)", biobloom:"—", lemon:"—"
+    },
+    "Vegetative / Runner & Crown (weeks 4–8)": {
+      N:{val:"100–150 ppm",level:"moderate"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"120–180 ppm",level:"moderate"},
+      Ca:{val:"150–180 ppm",level:"high"}, Mg:{val:"40–60 ppm",level:"moderate"},
+      ec:"1.2–1.6", ph:"5.8–6.5",
+      notes:"Build crown and foliage — avoid excessive N for this compact variety. 'Meraldo' is everbearing and can start showing flower buds from week 4–6, so transition to bloom feeding can happen early. CalMag consistently.",
+      biogrow:"¾ strength (2–3ml/L)", biobloom:"—", lemon:"¼ dose (1ml/L)"
+    },
+    "Flowering & Fruiting": {
+      N:{val:"60–90 ppm",level:"low"}, P:{val:"60–80 ppm",level:"high"}, K:{val:"200–280 ppm",level:"very high"},
+      Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"40–60 ppm",level:"moderate"},
+      ec:"1.4–1.8", ph:"5.8–6.5",
+      notes:"Reduce N significantly — excess N gives watery, pale, flavourless berries. K drives sweetness (Brix), red colour (anthocyanins) and firmness. 'Meraldo' is everbearing — harvest regularly to encourage continuous fruiting. Keep moist — drought causes small, dry, seedy fruit.",
+      biogrow:"—", biobloom:"2–3ml/L", lemon:"1ml/L"
+    },
+  },
+  // ── EXISTING CANNABIS STRAINS ───────────────────────────────────────────────
   gg_auto: {
     "Seedling (weeks 1–2)":               { N:{val:"25–50 ppm",level:"low"}, P:{val:"15–25 ppm",level:"low"}, K:{val:"25–50 ppm",level:"low"}, Ca:{val:"80–120 ppm",level:"moderate"}, Mg:{val:"20–40 ppm",level:"low"}, ec:"0.2–0.5", ph:"5.8–6.2", notes:"No feed before first true leaves. CalMag ¼ dose only. pH 5.8–6.2 for cannabis.", biogrow:"—", biobloom:"—", lemon:"—" },
     "Vegetative (weeks 3–5)":             { N:{val:"100–150 ppm",level:"moderate"}, P:{val:"50–75 ppm",level:"high"}, K:{val:"100–150 ppm",level:"moderate"}, Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"0.6–1.4", ph:"5.8–6.2", notes:"Heavy feeder — feed generously from week 3. Silica helps support heavy buds. Min 15–20L pot.", biogrow:"2–3ml/L", biobloom:"—", lemon:"—" },
@@ -580,7 +638,7 @@ const NUTRIENT_DATA = {
   },
 };
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 const state = {
   active: Object.fromEntries(PLANTS.map(p => [p.id, true])),
   stages: Object.fromEntries(PLANTS.map(p => [p.id, p.stages[0]])),
@@ -623,6 +681,7 @@ function renderControls() {
 
 function subClass(sub) {
   if (sub.includes("strongly")) return "sub-strong";
+  if (sub.includes("⛔")) return "sub-no";
   if (sub.includes("⚠️")) return "sub-warn";
   if (sub.includes("Either")) return "sub-both";
   return "sub-coco";
@@ -656,14 +715,10 @@ function renderResults() {
           <span class="badge badge-ph">pH ${data.ph}</span>
         </div>
       </div>
-      <div class="height-row">
-        <div class="height-pill"><span>📏</span> ${plant.height}</div>
-        <div class="height-pill"><span>🪣</span> Min ${plant.pot}</div>
-        <span class="sub-pill ${subClass(plant.substrate)}">${plant.substrate}</span>
-      </div>
       <div class="nutrient-row">
         ${['N','P','K','Ca','Mg'].map(n => `
           <div class="nutrient-pill">
+            <span class="sub-pill ${subClass(plant.soil)}">${plant.substrate}</span>
             <span class="nutrient-label">${n}</span>
             <span class="nutrient-val ${lvlClass(data[n].level)}">${data[n].val}</span>
             <span class="nutrient-level ${lvlClass(data[n].level)}">${data[n].level === 'very high' ? 'Very High' : data[n].level.charAt(0).toUpperCase()+data[n].level.slice(1)}</span>
