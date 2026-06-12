@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌱 Plant Nutrient Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark: #1a3a1a;
+    --green-mid: #2d6a2d;
+    --green-light: #4caf50;
+    --green-pale: #f0fdf4;
+    --amber: #f59e0b;
+    --amber-pale: #fefce8;
+    --blue-pale: #eff6ff;
+    --red-pale: #fee2e2;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --card: #ffffff;
+    --radius: 14px;
+    --shadow: 0 2px 16px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f5f7f2;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--green-dark);
+    padding: 0;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+  }
+  .header-inner {
+    max-width: 960px; margin: 0 auto;
+    display: flex; align-items: center; gap: 0;
+  }
+  .logo {
+    padding: 18px 24px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px; color: #fff; white-space: nowrap;
+  }
+  .logo span { color: #86efac; }
+  nav { display: flex; gap: 0; margin-left: auto; }
+  nav button {
+    background: none; border: none; cursor: pointer;
+    padding: 18px 22px; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 600; color: #9ca3af;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s; letter-spacing: 0.02em;
+  }
+  nav button.active { color: #86efac; border-bottom-color: #86efac; }
+  nav button:hover:not(.active) { color: #d1fae5; }
+
+  /* ── Layout ── */
+  .page { display: none; }
+  .page.active { display: block; }
+  .container { max-width: 960px; margin: 0 auto; padding: 28px 16px 60px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+    padding: 20px 22px; margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px; color: var(--green-dark); margin-bottom: 16px;
+  }
+
+  /* ── Toggle switch ── */
+  .toggle {
+    width: 40px; height: 22px; border-radius: 11px; border: none;
+    cursor: pointer; background: #d1d5db; position: relative;
+    transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--green-light); }
+  .toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; border-radius: 50%; background: #fff;
+    transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle.on::after { left: 21px; }
+
+  /* ── Plant row ── */
+  .plant-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  @media (max-width: 600px) { .plant-controls-grid { grid-template-columns: 1fr; } }
+
+  .plant-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #f9fafb; transition: all 0.15s;
+  }
+  .plant-row.on { background: var(--green-pale); border-color: #86efac; }
+  .plant-emoji { font-size: 18px; flex-shrink: 0; }
+  .plant-name { font-weight: 700; font-size: 12px; min-width: 0; flex: 1; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .plant-row.on .plant-name { color: var(--text); }
+  .plant-row select {
+    padding: 3px 6px; border-radius: 6px;
+    border: 1px solid var(--border); font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 600; background: #fff;
+    color: var(--text); cursor: pointer; outline: none;
+    max-width: 130px; flex-shrink: 0;
+  }
+
+  /* ── Result cards ── */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 700px) { .results-grid { grid-template-columns: 1fr; } }
+
+  .result-card {
+    background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+    padding: 14px 16px;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .result-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .result-emoji { font-size: 24px; }
+  .result-plant-name { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--text); }
+  .result-stage { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-top: 1px; }
+  .result-badges { display: flex; gap: 5px; margin-left: auto; flex-wrap: wrap; }
+  .badge {
+    border-radius: 8px; padding: 3px 10px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge-ec { background: var(--green-pale); color: #15803d; border: 1px solid #bbf7d0; }
+  .badge-ph { background: var(--blue-pale); color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+  /* ── Nutrient pills ── */
+  .nutrient-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .nutrient-pill {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; min-width: 68px;
+  }
+  .nutrient-label { font-size: 9px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .nutrient-val {
+    border-radius: 8px; padding: 3px 10px;
+    font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .nutrient-level { font-size: 9px; font-weight: 600; }
+  .lvl-low    { background:#dbeafe; color:#1e40af; }
+  .lvl-moderate { background:#dcfce7; color:#166534; }
+  .lvl-high   { background:#fef9c3; color:#854d0e; }
+  .lvl-vhigh  { background:#fee2e2; color:#991b1b; }
+
+  /* ── Fert doses ── */
+  .fert-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .fert-pill {
+    border-radius: 8px; padding: 4px 12px;
+    font-size: 11px; font-weight: 600; border: 1px solid;
+  }
+  .fert-grow   { background:#f0fdf4; border-color:#16a34a; color:#15803d; }
+  .fert-bloom  { background:#fff7ed; border-color:#ea580c; color:#c2410c; }
+  .fert-lemon  { background:#fefce8; border-color:#ca8a04; color:#a16207; }
+  .fert-water  { background:#f3f4f6; border-color:#d1d5db; color:#6b7280; }
+
+  .height-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center;
+  }
+  .height-pill {
+    display: flex; align-items: center; gap: 5px;
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    border-radius: 7px; padding: 3px 10px; font-size: 11px; font-weight: 600; color: #475569;
+  }
+  .height-pill span { font-size: 13px; }
+  .sub-pill {
+    border-radius: 7px; padding: 3px 10px;
+    font-size: 11px; font-weight: 700; border: 1px solid;
+  }
+  .sub-coco  { background:#f0fdf4; border-color:#86efac; color:#15803d; }
+  .sub-both  { background:#f8fafc; border-color:#cbd5e1; color:#475569; }
+  .sub-warn  { background:#fefce8; border-color:#fde047; color:#854d0e; }
+  .sub-strong{ background:#dcfce7; border-color:#4ade80; color:#15803d; font-weight:800; }
+    background: #f8fafc; border-radius: 8px;
+    padding: 9px 12px; font-size: 11px; color: #374151;
+    line-height: 1.6; border-left: 3px solid #d1d5db;
+  }
+
+  /* ── Fertilizer Calculator ── */
+  .fert-section {
+    border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .fert-section-header {
+    padding: 14px 20px; font-family: 'DM Serif Display', serif;
+    font-size: 15px; color: #fff; display: flex; align-items: center; gap: 8px;
+  }
+  .fert-table { width: 100%; border-collapse: collapse; background: #fff; }
+  .fert-table th {
+    padding: 9px 14px; font-size: 11px; font-weight: 700;
+    color: #fff; text-align: center; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .fert-table td {
+    padding: 10px 14px; font-size: 12px; text-align: center;
+    border-bottom: 1px solid #f3f4f6; vertical-align: middle;
+  }
+  .fert-table td:first-child { font-weight: 700; text-align: left; font-size: 13px; }
+  .fert-table td:nth-child(2) { color: var(--text-muted); font-size: 11px; text-align: left; }
+  .fert-table tr:last-child td { border-bottom: none; }
+  .fert-table tr:hover td { background: #fafafa; }
+  .ppm-cell {
+    border-radius: 6px; padding: 3px 8px;
+    font-weight: 800; font-size: 12px; display: inline-block;
+  }
+
+  .mix-header {
+    background: #1e3a5f; color: #fff; padding: 14px 20px;
+    font-family: 'DM Serif Display', serif; font-size: 15px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .mix-table { width: 100%; border-collapse: collapse; background: #fff;
+    border-radius: 0 0 var(--radius) var(--radius); overflow: hidden;
+    border: 1px solid var(--border); border-top: none; margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    background: #fff; border-radius: var(--radius); padding: 12px 16px;
+    border: 1px solid var(--border); margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .legend-label { font-size: 11px; font-weight: 800; color: var(--text-muted); }
+  .legend-note { font-size: 11px; color: var(--text-muted); margin-left: auto; font-style: italic; }
+
+  /* ── Section title ── */
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px; color: var(--green-dark); margin-bottom: 18px;
+    padding-bottom: 10px; border-bottom: 2px solid #d1fae5;
+  }
+
+  /* ── Disclaimer ── */
+  .disclaimer {
+    background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;
+    padding: 10px 14px; font-size: 11px; color: #92400e;
+    margin-bottom: 20px; line-height: 1.6;
+  }
+
+  .empty-state {
+    text-align: center; color: var(--text-muted);
+    padding: 50px 20px; font-size: 14px;
+  }
+  .empty-state div { font-size: 40px; margin-bottom: 12px; }
+
+  /* ── How to edit box ── */
+  .edit-guide {
+    background: #1a3a1a; color: #d1fae5; border-radius: var(--radius);
+    padding: 20px 22px; margin-bottom: 24px; line-height: 1.8;
+    font-size: 13px;
+  }
+  .edit-guide h3 { font-family: 'DM Serif Display', serif; font-size: 17px; color: #86efac; margin-bottom: 12px; }
+  .edit-guide code {
+    background: rgba(134,239,172,0.15); color: #86efac;
+    border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: monospace;
+  }
+  .edit-guide ol { padding-left: 20px; }
+  .edit-guide li { margin-bottom: 6px; }
+
+  @media (max-width: 600px) {
+    nav button { padding: 14px 12px; font-size: 11px; }
+    .logo { font-size: 16px; padding: 14px 14px; }
+    .plant-row select { max-width: 160px; }
+    .fert-table { font-size: 11px; }
+    .fert-table td, .fert-table th { padding: 8px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">🌱 <span>Nutrient</span> Advisor</div>
+    <nav>
+      <button class="active" onclick="showPage('advisor')">Plant Advisor</button>
+      <button onclick="showPage('calculator')">Fertilizer Calc</button>
+      <button onclick="showPage('edit')">How to Edit</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 1 — PLANT ADVISOR
+════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-advisor">
+<div class="container">
+
+  <div class="card">
+    <div class="card-title">🪴 Your Plants — Toggle on/off & set current stage</div>
+    <div id="plant-controls"></div>
+  </div>
+
+  <div class="legend">
+    <span class="legend-label">PPM LEVELS:</span>
+    <span class="nutrient-val lvl-low">Low</span>
+    <span class="nutrient-val lvl-moderate">Moderate</span>
+    <span class="nutrient-val lvl-high">High</span>
+    <span class="nutrient-val lvl-vhigh">Very High</span>
+    <span class="legend-note">💧 Always add Canna CalMag every watering in coco</span>
+  </div>
+
+  <div id="results"></div>
+
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 2 — FERTILIZER CALCULATOR
+════════════════════════════════════════════════════════ -->
+<div class="page" id="page-calculator">
+<div class="container">
+
+  <p class="section-title">💧 Fertilizer Dose Guide — Expected PPM per Litre</p>
+
+  <div class="disclaimer">
+    ⚠️ <strong>Approximate maximum values.</strong> Organic fertilizers release nutrients slowly — actual available PPM will be lower than shown. Always start at the lowest dose and increase gradually. Add Canna CalMag on top of all feeds.
+  </div>
+
+  <!-- Bio Grow -->
+  <div class="fert-section">
+    <div class="fert-section-header" style="background:#1a6b2a">🌿 Bio Grow — NPK 4-3-6 — Vegetative / Growth</div>
+    <table class="fert-table">
+      <tr style="background:#2d8a40">
+        <th style="text-align:left">Fertilizer</th><th>Stage</th><th>Dose ml/L</th><th>N ppm</th><th>P ppm</th><th>K ppm</th><th style="text-align:left;min-width:200px">Notes</th>
+      </tr>
+      <tr><td>🌿 Bio Grow</td><td>Seedling</td><td>1 ml/L</td><td><span class="ppm-cell lvl-low">~40</span></td><td><span class="ppm-cell lvl-low">~30</span></td><td><span class="ppm-cell lvl-moderate">~60</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Gentlest dose — only after first true leaves</td></tr>
+      <tr><td>🌿 Bio Grow</td><td>Early Veg</td><td>2 ml/L</td><td><span class="ppm-cell lvl-moderate">~80</span></td><td><span class="ppm-cell lvl-moderate">~60</span></td><td><span class="ppm-cell lvl-moderate">~120</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Good starter — N moderate, K building</td></tr>
+      <tr><td>🌿 Bio Grow</td><td>Full Veg</td><td>3 ml/L</td><td><span class="ppm-cell lvl-high">~120</span></td><td><span class="ppm-cell lvl-high">~90</span></td><td><span class="ppm-cell lvl-moderate">~180</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Strong veg feed for established plants</td></tr>
+      <tr><td>🌿 Bio Grow</td><td>Max Veg</td><td>4 ml/L</td><td><span class="ppm-cell lvl-high">~160</span></td><td><span class="ppm-cell lvl-high">~120</span></td><td><span class="ppm-cell lvl-high">~240</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Heavy feeders only (tomato, GG Auto peak veg)</td></tr>
+    </table>
+  </div>
+
+  <!-- Bio Bloom -->
+  <div class="fert-section">
+    <div class="fert-section-header" style="background:#b45309">🌸 Bio Bloom — NPK 2-7-4 — Flowering & Fruiting</div>
+    <table class="fert-table">
+      <tr style="background:#d97706">
+        <th style="text-align:left">Fertilizer</th><th>Stage</th><th>Dose ml/L</th><th>N ppm</th><th>P ppm</th><th>K ppm</th><th style="text-align:left;min-width:200px">Notes</th>
+      </tr>
+      <tr><td>🌸 Bio Bloom</td><td>Early Flower</td><td>1 ml/L</td><td><span class="ppm-cell lvl-low">~20</span></td><td><span class="ppm-cell lvl-high">~70</span></td><td><span class="ppm-cell lvl-low">~40</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Gentle intro to bloom. P already high at 1ml.</td></tr>
+      <tr><td>🌸 Bio Bloom</td><td>Full Flowering</td><td>2 ml/L</td><td><span class="ppm-cell lvl-low">~40</span></td><td><span class="ppm-cell lvl-vhigh">~140</span></td><td><span class="ppm-cell lvl-moderate">~80</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Ideal for flower development and fruit set</td></tr>
+      <tr><td>🌸 Bio Bloom</td><td>Fruiting</td><td>3 ml/L</td><td><span class="ppm-cell lvl-moderate">~60</span></td><td><span class="ppm-cell lvl-vhigh">~210</span></td><td><span class="ppm-cell lvl-moderate">~120</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Heavy fruiting (melon, tomato peak)</td></tr>
+      <tr><td>🌸 Bio Bloom</td><td>Max dose</td><td>4 ml/L</td><td><span class="ppm-cell lvl-moderate">~80</span></td><td><span class="ppm-cell lvl-vhigh">~280</span></td><td><span class="ppm-cell lvl-moderate">~160</span></td><td style="text-align:left;font-size:11px;color:#6b7280">⚠️ P very excessive for most plants. Only if deficient.</td></tr>
+    </table>
+  </div>
+
+  <!-- Primaster Lemon -->
+  <div class="fert-section">
+    <div class="fert-section-header" style="background:#a16207">🍋 Primaster Lemon — NPK 4-0.5-5 (+Sulfur) — Citrus / Maintenance</div>
+    <table class="fert-table">
+      <tr style="background:#ca8a04">
+        <th style="text-align:left">Fertilizer</th><th>Stage</th><th>Dose ml/L</th><th>N ppm</th><th>P ppm</th><th>K ppm</th><th style="text-align:left;min-width:200px">Notes</th>
+      </tr>
+      <tr><td>🍋 Primaster</td><td>Light maintenance</td><td>1 ml/L</td><td><span class="ppm-cell lvl-low">~40</span></td><td><span class="ppm-cell lvl-low">~5</span></td><td><span class="ppm-cell lvl-low">~50</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Minimal dose. Good sulfur + K source. P useless.</td></tr>
+      <tr><td>🍋 Primaster</td><td>Veg maintenance</td><td>2 ml/L</td><td><span class="ppm-cell lvl-moderate">~80</span></td><td><span class="ppm-cell lvl-low">~10</span></td><td><span class="ppm-cell lvl-moderate">~100</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Base N+K feed. Pair with Bio Bloom for P.</td></tr>
+      <tr><td>🍋 Primaster</td><td>Heavy veg / citrus</td><td>4 ml/L</td><td><span class="ppm-cell lvl-high">~160</span></td><td><span class="ppm-cell lvl-low">~20</span></td><td><span class="ppm-cell lvl-high">~200</span></td><td style="text-align:left;font-size:11px;color:#6b7280">Max dose. P still only 20ppm — always add Bio Bloom.</td></tr>
+    </table>
+  </div>
+
+  <!-- Mixing examples -->
+  <div class="mix-header">🧪 Mixing Examples — Combining Fertilizers</div>
+  <table class="mix-table">
+    <tr style="background:#1e3a5f">
+      <th style="text-align:left;color:#fff;padding:10px 14px;font-size:11px">Combination</th>
+      <th style="color:#fff;padding:10px 14px;font-size:11px">Stage</th>
+      <th style="color:#fff;padding:10px 14px;font-size:11px">N ppm</th>
+      <th style="color:#fff;padding:10px 14px;font-size:11px">P ppm</th>
+      <th style="color:#fff;padding:10px 14px;font-size:11px">K ppm</th>
+      <th style="text-align:left;color:#fff;padding:10px 14px;font-size:11px;min-width:180px">Notes</th>
+    </tr>
+    <tr style="background:#ebf5fb">
+      <td style="padding:10px 14px;font-weight:700;font-size:12px">🌿 Bio Grow 2ml + 🍋 Lemon 1ml</td>
+      <td style="padding:10px 14px;font-size:11px;color:#6b7280">Early Veg</td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">120</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">65</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-high">170</span></td>
+      <td style="padding:10px 14px;font-size:11px;color:#374151">Lemon adds sulfur + extra K. Good all-round veg mix.</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 14px;font-weight:700;font-size:12px">🌿 Bio Grow 1ml + 🌸 Bio Bloom 2ml</td>
+      <td style="padding:10px 14px;font-size:11px;color:#6b7280">Transition veg→flower</td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">80</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-vhigh">170</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">140</span></td>
+      <td style="padding:10px 14px;font-size:11px;color:#374151">Good bridge feed for tomato/pepper moving into flower.</td>
+    </tr>
+    <tr style="background:#ebf5fb">
+      <td style="padding:10px 14px;font-weight:700;font-size:12px">🌸 Bio Bloom 2ml + 🍋 Lemon 1ml</td>
+      <td style="padding:10px 14px;font-size:11px;color:#6b7280">Fruiting</td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">80</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-vhigh">145</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">130</span></td>
+      <td style="padding:10px 14px;font-size:11px;color:#374151">Lemon adds sulfur for flavour. Good fruiting mix.</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 14px;font-weight:700;font-size:12px">🌿 1ml + 🌸 1ml + 🍋 1ml</td>
+      <td style="padding:10px 14px;font-size:11px;color:#6b7280">All-in maintenance</td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">100</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-high">105</span></td>
+      <td style="padding:10px 14px;text-align:center"><span class="ppm-cell lvl-moderate">150</span></td>
+      <td style="padding:10px 14px;font-size:11px;color:#374151">Year-round balanced feed for lemon tree or thyme.</td>
+    </tr>
+  </table>
+
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 3 — HOW TO EDIT
+════════════════════════════════════════════════════════ -->
+<div class="page" id="page-edit">
+<div class="container">
+
+  <p class="section-title">✏️ How to Edit This File</p>
+
+  <div class="edit-guide">
+    <h3>The file is a single HTML file — you edit it in any text editor</h3>
+    <p style="margin-bottom:12px">You don't need any special software. Notepad on Windows or TextEdit on Mac works fine. For a better experience, use <strong>VS Code</strong> (free, download at code.visualstudio.com) which highlights the code in colour and makes it much easier to read.</p>
+    <ol>
+      <li>Right-click the HTML file → <strong>Open with</strong> → Notepad (or VS Code)</li>
+      <li>Press <code>Ctrl+F</code> (Windows) or <code>Cmd+F</code> (Mac) to search</li>
+      <li>Search for the plant name you want to change, e.g. <code>tomato</code> or <code>Strawberry</code></li>
+      <li>Find the value you want to edit and change the number</li>
+      <li>Save the file (<code>Ctrl+S</code>), then refresh the browser tab</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 Where to find each type of data</div>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.7">
+
+      <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px;border-left:4px solid #16a34a">
+        <strong>Plant Advisor nutrient values (N, P, K, Ca, Mg, EC, pH, notes, fertilizer doses)</strong><br>
+        Search for <code>const NUTRIENT_DATA</code> — this is the main data block. Each plant has a section like <code>tomato: { "Seedling": { N: { val: "40–70 ppm", level: "low" }, ... } }</code><br>
+        Change the <code>val</code> text to update the displayed value. Change <code>level</code> to update the colour: use <code>low</code>, <code>moderate</code>, <code>high</code>, or <code>very high</code>.
+      </div>
+
+      <div style="background:#fff7ed;border-radius:10px;padding:14px 16px;border-left:4px solid #ea580c">
+        <strong>Fertilizer dose tables (the ppm numbers in Bio Grow / Bio Bloom / Primaster tables)</strong><br>
+        Search for <code>Bio Grow</code> or <code>Bio Bloom</code> — you'll find the table rows. Each row has <code>~40</code>, <code>~80</code> etc. inside <code>&lt;span&gt;</code> tags. Just change the number. Also change the class (<code>lvl-low</code>, <code>lvl-moderate</code>, <code>lvl-high</code>, <code>lvl-vhigh</code>) to update the colour.
+      </div>
+
+      <div style="background:#eff6ff;border-radius:10px;padding:14px 16px;border-left:4px solid #2563eb">
+        <strong>Adding a new plant to the Advisor</strong><br>
+        Search for <code>const PLANTS</code> — add a new entry like <code>{ id: "basil", emoji: "🌿", name: "Basil", stages: ["Seedling", "Vegetative"] }</code><br>
+        Then search for <code>const NUTRIENT_DATA</code> and add a matching <code>basil: { "Seedling": { N: { val: "...", level: "..." }, ... } }</code> block following the same pattern as the other plants.
+      </div>
+
+      <div style="background:#fef9c3;border-radius:10px;padding:14px 16px;border-left:4px solid #ca8a04">
+        <strong>Changing fertilizer doses shown in the Plant Advisor cards</strong><br>
+        Inside <code>NUTRIENT_DATA</code>, each stage has <code>biogrow</code>, <code>biobloom</code>, and <code>lemon</code> fields. For example: <code>biogrow: "3–4ml/L"</code>. Change the text to whatever dose you want shown. Use <code>"—"</code> to hide a fertilizer for that stage.
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">💡 Tips</div>
+    <ul style="font-size:13px;line-height:2;padding-left:18px;color:#374151">
+      <li>Always keep a <strong>backup copy</strong> of the file before editing</li>
+      <li>If something breaks after editing, undo with <code>Ctrl+Z</code> and save again</li>
+      <li>The quotes around values matter — keep them: <code>"40–70 ppm"</code> not <code>40–70 ppm</code></li>
+      <li>The commas between entries matter too — if you add a new plant, make sure there's a comma after the previous one</li>
+      <li>After saving, just refresh the browser (F5) — no reinstalling needed</li>
+      <li>VS Code will highlight errors in red if you make a syntax mistake</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── Navigation ───────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+const PLANTS = [
+  { id: "tomato",     emoji: "🍅", name: "Tomato",                  stages: ["Seedling (weeks 1–3)", "Vegetative (weeks 4–7)", "Flowering & Fruiting"],                                                                   height:"100–200 cm", pot:"15–20L", substrate:"✅ Coco or Soil",              subNote:"Tall plant, good airflow. Coco preferred for liquid feeding control." },
+  { id: "potato",     emoji: "🥔", name: "Potato",                  stages: ["Vegetative (weeks 1–6)", "Tuber Bulking (weeks 7–12)"],                                                                                     height:"50–100 cm",  pot:"20–30L", substrate:"✅ Coco preferred",             subNote:"Tubers expand well in airy coco. Low mushroom risk on surface." },
+  { id: "lemon",      emoji: "🍋", name: "Lemon",                   stages: ["Year-round (Maintenance)", "Flowering & Fruiting"],                                                                                          height:"80–150 cm",  pot:"30–50L", substrate:"✅ Coco or Soil",              subNote:"Tall tree in pot. Either works. Coco gives better root aeration." },
+  { id: "melon",      emoji: "🍈", name: "Melon",                   stages: ["Vegetative (weeks 1–4)", "Fruiting & Swelling"],                                                                                             height:"30–50 cm",   pot:"15–20L", substrate:"⚠️ Coco preferred",            subNote:"Low sprawling vine — higher mushroom risk in soil. Coco recommended." },
+  { id: "chili",      emoji: "🌶️", name: "Red Chili",               stages: ["Vegetative (weeks 1–5)", "Flowering & Fruiting"],                                                                                            height:"60–120 cm",  pot:"10–15L", substrate:"✅ Coco or Soil",              subNote:"Medium height, good airflow. Either substrate works fine." },
+  { id: "pepper",     emoji: "🫑", name: "Bell Pepper",             stages: ["Vegetative (weeks 1–5)", "Fruiting & Colour Development"],                                                                                   height:"60–100 cm",  pot:"10–15L", substrate:"✅ Coco preferred",             subNote:"Coco preferred for consistent moisture control (prevents BER)." },
+  { id: "thyme",      emoji: "🌿", name: "Thyme",                   stages: ["Year-round (Herb)"],                                                                                                                         height:"20–40 cm",   pot:"3–5L",   substrate:"⚠️ Coco preferred",            subNote:"Low lying ground cover — higher mushroom risk in soil. Coco keeps surface drier." },
+  { id: "coriander",  emoji: "🌿", name: "Coriander",               stages: ["Year-round (Herb)"],                                                                                                                         height:"30–60 cm",   pot:"3–5L",   substrate:"⚠️ Coco preferred",            subNote:"Low-medium, dense foliage near ground. Some mushroom risk. Coco keeps surface drier." },
+  { id: "mint",       emoji: "🌿", name: "Mint",                    stages: ["Year-round (Herb)"],                                                                                                                         height:"30–90 cm",   pot:"5–10L",  substrate:"⚠️ Coco preferred",            subNote:"Sprawling — some mushroom risk. Always grow in a contained pot — spreads aggressively." },
+  { id: "blackberry", emoji: "🫐", name: "Blackberry",              stages: ["Vegetative / Cane Growth", "Flowering & Fruiting"],                                                                                          height:"150–300 cm", pot:"20–30L", substrate:"✅ Either works",               subNote:"Tall canes, good airflow. Either substrate works. Watch pH in coco (6.2–6.5)." },
+  { id: "strawberry", emoji: "🍓", name: "Strawberry",              stages: ["Vegetative / Runner Stage", "Flowering & Fruiting"],                                                                                         height:"15–30 cm",   pot:"5–8L",   substrate:"✅✅ Coco strongly preferred",  subNote:"Very low lying — high mushroom risk in soil. Coco is ideal, proven by research." },
+  { id: "apple",      emoji: "🍏", name: "Apple (Golden Delicious)", stages: ["Spring Vegetative Growth", "Flowering & Fruit Set", "Fruit Swelling & Ripening"],                                                           height:"100–200 cm", pot:"30–50L", substrate:"✅ Either works",               subNote:"Tall tree, good airflow. Either substrate fine. Large pot essential." },
+  { id: "gg_auto",    emoji: "🦍", name: "Gorilla Glue Auto",       stages: ["Seedling (weeks 1–2)", "Vegetative (weeks 3–5)", "Pre-Flower (weeks 4–5)", "Full Flower & Bud Swelling (weeks 6–9)", "Flush (final 1–2 weeks)"], height:"80–120 cm",  pot:"15–20L", substrate:"✅ Coco strongly preferred",  subNote:"Medium-tall, dense canopy. Coco preferred — faster flush, better nutrient control." },
+  { id: "guava_auto", emoji: "🍈", name: "Guava Auto",              stages: ["Seedling (weeks 1–2)", "Vegetative (weeks 3–5)", "Flowering (weeks 5–8)", "Flush (final 1 week)"],                                           height:"50–80 cm",   pot:"10–15L", substrate:"✅ Coco preferred",             subNote:"Compact, ideal for grow boxes. Coco preferred for cannabis pH control." },
+];
+
+const NUTRIENT_DATA = {
+  tomato: {
+    "Seedling (weeks 1–3)":    { N:{val:"40–70 ppm",level:"low"}, P:{val:"50–80 ppm",level:"high"}, K:{val:"100–150 ppm",level:"moderate"}, Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"40–60 ppm",level:"moderate"}, ec:"0.6–1.0", ph:"6.0–6.5", notes:"No feed before first true leaves. Start CalMag from day 1 in coco.", biogrow:"½ dose (1–2ml/L)", biobloom:"—", lemon:"—" },
+    "Vegetative (weeks 4–7)":  { N:{val:"150–200 ppm",level:"high"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"200–300 ppm",level:"high"}, Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"50–70 ppm",level:"moderate"}, ec:"1.5–2.0", ph:"6.0–6.5", notes:"Push N for rapid canopy. Increase K for strong stems. CalMag every watering.", biogrow:"Full dose (3–4ml/L)", biobloom:"—", lemon:"1ml/L for extra K+S" },
+    "Flowering & Fruiting":    { N:{val:"80–120 ppm",level:"moderate"}, P:{val:"60–80 ppm",level:"high"}, K:{val:"300–400 ppm",level:"very high"}, Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.8–2.5", ph:"6.0–6.5", notes:"Switch to Bio Bloom. K drives sugar & flavour. Ca prevents blossom-end rot.", biogrow:"—", biobloom:"2–3ml/L", lemon:"1ml/L for K+S" },
+  },
+  potato: {
+    "Vegetative (weeks 1–6)":     { N:{val:"150–200 ppm",level:"high"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"200–250 ppm",level:"high"}, Ca:{val:"120–160 ppm",level:"moderate"}, Mg:{val:"40–60 ppm",level:"moderate"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"Strong N for foliage — leaves fuel tuber growth. Start K early.", biogrow:"Full dose (3–4ml/L)", biobloom:"—", lemon:"1ml/L" },
+    "Tuber Bulking (weeks 7–12)": { N:{val:"50–80 ppm",level:"low"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"300–400 ppm",level:"very high"}, Ca:{val:"120–150 ppm",level:"moderate"}, Mg:{val:"50 ppm",level:"moderate"}, ec:"1.6–2.2", ph:"6.0–6.5", notes:"Cut N sharply — excess N = small tubers. Go heavy on K. Stop watering 2 weeks before harvest.", biogrow:"¼ dose only", biobloom:"2ml/L", lemon:"1–2ml/L" },
+  },
+  lemon: {
+    "Year-round (Maintenance)": { N:{val:"150–200 ppm",level:"high"}, P:{val:"30–50 ppm",level:"low"}, K:{val:"200–250 ppm",level:"high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"60–80 ppm",level:"high"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"Citrus are N lovers. Feed year-round. High Mg — deficiency = yellowing old leaves.", biogrow:"2–3ml/L", biobloom:"—", lemon:"2ml/L" },
+    "Flowering & Fruiting":     { N:{val:"100–150 ppm",level:"moderate"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"250–350 ppm",level:"very high"}, Ca:{val:"180–220 ppm",level:"very high"}, Mg:{val:"70–90 ppm",level:"high"}, ec:"1.6–2.2", ph:"6.0–6.5", notes:"High K = juicier fruit. Watch for fruit splitting (Ca). Boron important for fruit set.", biogrow:"1ml/L", biobloom:"2ml/L", lemon:"1ml/L" },
+  },
+  melon: {
+    "Vegetative (weeks 1–4)": { N:{val:"150–200 ppm",level:"high"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"200–250 ppm",level:"high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"Melons grow very fast. Keep coco moist — melons hate drying out. Min 15–20L pot.", biogrow:"3–4ml/L", biobloom:"—", lemon:"—" },
+    "Fruiting & Swelling":    { N:{val:"50–80 ppm",level:"low"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"350–450 ppm",level:"very high"}, Ca:{val:"200–250 ppm",level:"very high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"2.0–2.8", ph:"6.0–6.5", notes:"Highest K demand of all plants. K drives sugar (sweetness). Reduce water slightly 1 week before harvest.", biogrow:"—", biobloom:"3–4ml/L", lemon:"1ml/L" },
+  },
+  chili: {
+    "Vegetative (weeks 1–5)": { N:{val:"150–200 ppm",level:"high"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"150–200 ppm",level:"high"}, Ca:{val:"130–160 ppm",level:"moderate"}, Mg:{val:"40–60 ppm",level:"moderate"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"Build a big bushy plant before fruiting. Chilies tolerate slightly drier coco.", biogrow:"3–4ml/L", biobloom:"—", lemon:"1ml/L" },
+    "Flowering & Fruiting":   { N:{val:"80–120 ppm",level:"moderate"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"280–380 ppm",level:"very high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50 ppm",level:"moderate"}, ec:"1.8–2.4", ph:"6.0–6.5", notes:"K key for chili heat and colour. Slight drought stress during fruiting increases capsaicin.", biogrow:"—", biobloom:"2–3ml/L", lemon:"1ml/L" },
+  },
+  pepper: {
+    "Vegetative (weeks 1–5)":          { N:{val:"150–200 ppm",level:"high"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"150–200 ppm",level:"high"}, Ca:{val:"150–180 ppm",level:"high"}, Mg:{val:"40–60 ppm",level:"moderate"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"Don't let coco dry out — causes BER. Bell peppers need more Ca than chilies.", biogrow:"3–4ml/L", biobloom:"—", lemon:"1ml/L" },
+    "Fruiting & Colour Development":   { N:{val:"80–100 ppm",level:"moderate"}, P:{val:"50–60 ppm",level:"high"}, K:{val:"280–350 ppm",level:"very high"}, Ca:{val:"180–220 ppm",level:"very high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.8–2.4", ph:"6.0–6.5", notes:"Too much N = peppers stay green. K drives colour development. Consistent watering prevents BER.", biogrow:"¼ dose", biobloom:"2–3ml/L", lemon:"1ml/L" },
+  },
+  thyme: {
+    "Year-round (Herb)": { N:{val:"50–100 ppm",level:"low"}, P:{val:"20–40 ppm",level:"low"}, K:{val:"100–150 ppm",level:"moderate"}, Ca:{val:"100–140 ppm",level:"moderate"}, Mg:{val:"30–50 ppm",level:"low"}, ec:"0.8–1.2", ph:"6.0–6.5", notes:"Less is more. Overfeeding N = bland flavour. Let coco dry out more than other plants. K boosts thymol (aroma).", biogrow:"¼ dose (1ml/L)", biobloom:"—", lemon:"½ dose (1ml/L)" },
+  },
+  coriander: {
+    "Year-round (Herb)": { N:{val:"50–100 ppm",level:"low"}, P:{val:"20–40 ppm",level:"low"}, K:{val:"80–120 ppm",level:"moderate"}, Ca:{val:"100–140 ppm",level:"moderate"}, Mg:{val:"30–50 ppm",level:"low"}, ec:"0.6–1.0", ph:"6.0–6.5", notes:"Very N-sensitive — overfeeding causes bolting. Keep coco evenly moist (bolts under drought stress). Resow every 3–4 weeks for continuous harvest.", biogrow:"¼ dose (1ml/L)", biobloom:"—", lemon:"—" },
+  },
+  mint: {
+    "Year-round (Herb)": { N:{val:"80–120 ppm",level:"moderate"}, P:{val:"20–40 ppm",level:"low"}, K:{val:"100–150 ppm",level:"moderate"}, Ca:{val:"100–140 ppm",level:"moderate"}, Mg:{val:"30–50 ppm",level:"low"}, ec:"0.8–1.4", ph:"6.0–6.5", notes:"More vigorous than thyme/coriander — needs moderate N. K boosts menthol production. ⚠️ Always grow in a contained pot — mint spreads extremely aggressively.", biogrow:"½ dose (1–2ml/L)", biobloom:"—", lemon:"1ml/L for K+S" },
+  },
+  blackberry: {
+    "Vegetative / Cane Growth": { N:{val:"100–150 ppm",level:"moderate"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"150–200 ppm",level:"high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.2–1.6", ph:"6.2–6.5", notes:"Needs large pot (min 20L). Keep pH 6.2–6.5. CalMag at full dose in coco.", biogrow:"2–3ml/L", biobloom:"—", lemon:"1ml/L" },
+    "Flowering & Fruiting":     { N:{val:"50–80 ppm",level:"low"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"250–320 ppm",level:"very high"}, Ca:{val:"180–220 ppm",level:"very high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.6–2.2", ph:"6.2–6.5", notes:"Ca directly affects berry firmness. Reduce watering as berries ripen to concentrate flavour.", biogrow:"—", biobloom:"2–3ml/L", lemon:"1ml/L" },
+  },
+  strawberry: {
+    "Vegetative / Runner Stage": { N:{val:"100–150 ppm",level:"moderate"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"150–200 ppm",level:"high"}, Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"40–60 ppm",level:"moderate"}, ec:"1.2–1.6", ph:"5.8–6.2", notes:"Strawberries love coco! Use 5–8L pots. pH 5.8–6.2. 2/3 strength nutrients confirmed optimal by research.", biogrow:"2–3ml/L", biobloom:"—", lemon:"—" },
+    "Flowering & Fruiting":      { N:{val:"50–80 ppm",level:"low"}, P:{val:"50–70 ppm",level:"high"}, K:{val:"484–543 ppm",level:"very high"}, Ca:{val:"180–220 ppm",level:"very high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.6–2.2", ph:"5.8–6.2", notes:"High N = watery bland berries. K target is high (484–543 ppm — scientifically confirmed). Let coco dry slightly between watering.", biogrow:"—", biobloom:"3–4ml/L", lemon:"—" },
+  },
+  apple: {
+    "Spring Vegetative Growth":   { N:{val:"150–200 ppm",level:"high"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"150–200 ppm",level:"high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50–70 ppm",level:"moderate"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"Feed from bud break. Boron important from day 1 for later fruit set. Min 30–40L pot.", biogrow:"3ml/L", biobloom:"—", lemon:"1ml/L" },
+    "Flowering & Fruit Set":      { N:{val:"80–120 ppm",level:"moderate"}, P:{val:"60–80 ppm",level:"high"}, K:{val:"150–200 ppm",level:"high"}, Ca:{val:"200–250 ppm",level:"very high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.4–1.8", ph:"6.0–6.5", notes:"⚠️ Do NOT push K now — high K antagonises Ca uptake and causes bitter pit. Consistent watering > extra nutrients.", biogrow:"1ml/L", biobloom:"1ml/L", lemon:"—" },
+    "Fruit Swelling & Ripening":  { N:{val:"50–80 ppm",level:"low"}, P:{val:"30–50 ppm",level:"low"}, K:{val:"280–380 ppm",level:"very high"}, Ca:{val:"200–250 ppm",level:"very high"}, Mg:{val:"50 ppm",level:"moderate"}, ec:"1.6–2.2", ph:"6.0–6.5", notes:"Golden Delicious highly bitter-pit prone. Consistent watering > extra nutrients. Harvest when fully golden-yellow.", biogrow:"—", biobloom:"2ml/L", lemon:"1ml/L" },
+  },
+  gg_auto: {
+    "Seedling (weeks 1–2)":               { N:{val:"25–50 ppm",level:"low"}, P:{val:"15–25 ppm",level:"low"}, K:{val:"25–50 ppm",level:"low"}, Ca:{val:"80–120 ppm",level:"moderate"}, Mg:{val:"20–40 ppm",level:"low"}, ec:"0.2–0.5", ph:"5.8–6.2", notes:"No feed before first true leaves. CalMag ¼ dose only. pH 5.8–6.2 for cannabis.", biogrow:"—", biobloom:"—", lemon:"—" },
+    "Vegetative (weeks 3–5)":             { N:{val:"100–150 ppm",level:"moderate"}, P:{val:"50–75 ppm",level:"high"}, K:{val:"100–150 ppm",level:"moderate"}, Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"0.6–1.4", ph:"5.8–6.2", notes:"Heavy feeder — feed generously from week 3. Silica helps support heavy buds. Min 15–20L pot.", biogrow:"2–3ml/L", biobloom:"—", lemon:"—" },
+    "Pre-Flower (weeks 4–5)":             { N:{val:"100–130 ppm",level:"moderate"}, P:{val:"60–80 ppm",level:"high"}, K:{val:"180–250 ppm",level:"high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50–60 ppm",level:"moderate"}, ec:"1.0–1.6", ph:"5.8–6.2", notes:"Transition — reduce Bio Grow, introduce Bio Bloom. LST branches now for more bud sites.", biogrow:"1ml/L", biobloom:"1–2ml/L", lemon:"—" },
+    "Full Flower & Bud Swelling (weeks 6–9)": { N:{val:"50–80 ppm",level:"low"}, P:{val:"80–100 ppm",level:"high"}, K:{val:"280–380 ppm",level:"very high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50 ppm",level:"moderate"}, ec:"1.6–3.2", ph:"5.8–6.2", notes:"Don't underfeed — GG Auto eats nutrients. Humidity 40–50% to prevent mold. Finishes week 9–10.", biogrow:"—", biobloom:"3–4ml/L", lemon:"—" },
+    "Flush (final 1–2 weeks)":            { N:{val:"0 ppm",level:"low"}, P:{val:"0 ppm",level:"low"}, K:{val:"0 ppm",level:"low"}, Ca:{val:"0 ppm",level:"low"}, Mg:{val:"0 ppm",level:"low"}, ec:"0.0", ph:"5.8–6.2", notes:"Plain pH'd water only (5.8–6.2). Coco flushes in 3–5 days. Harvest when trichomes are milky with some amber.", biogrow:"—", biobloom:"—", lemon:"—" },
+  },
+  guava_auto: {
+    "Seedling (weeks 1–2)":   { N:{val:"25–50 ppm",level:"low"}, P:{val:"15–25 ppm",level:"low"}, K:{val:"25–50 ppm",level:"low"}, Ca:{val:"80–100 ppm",level:"low"}, Mg:{val:"20–30 ppm",level:"low"}, ec:"0.2–0.5", ph:"5.8–6.2", notes:"More sensitive than GG Auto — go even lighter. CalMag ¼ dose only. pH 5.8–6.2.", biogrow:"—", biobloom:"—", lemon:"—" },
+    "Vegetative (weeks 3–5)": { N:{val:"100–150 ppm",level:"moderate"}, P:{val:"40–60 ppm",level:"moderate"}, K:{val:"100–150 ppm",level:"moderate"}, Ca:{val:"150–200 ppm",level:"high"}, Mg:{val:"40–60 ppm",level:"moderate"}, ec:"0.6–1.4", ph:"5.8–6.2", notes:"Stays short and compact — ideal for small grow boxes. 10–15L pot sufficient.", biogrow:"2ml/L", biobloom:"—", lemon:"—" },
+    "Flowering (weeks 5–8)":  { N:{val:"60–100 ppm",level:"moderate"}, P:{val:"70–90 ppm",level:"high"}, K:{val:"250–350 ppm",level:"very high"}, Ca:{val:"160–200 ppm",level:"high"}, Mg:{val:"50 ppm",level:"moderate"}, ec:"1.6–3.2", ph:"5.8–6.2", notes:"Tropical terpene profile — Zn important for guava/mango flavour. Humidity below 50%. Finishes week 8–9.", biogrow:"—", biobloom:"2–3ml/L", lemon:"—" },
+    "Flush (final 1 week)":   { N:{val:"0 ppm",level:"low"}, P:{val:"0 ppm",level:"low"}, K:{val:"0 ppm",level:"low"}, Ca:{val:"0 ppm",level:"low"}, Mg:{val:"0 ppm",level:"low"}, ec:"0.0", ph:"5.8–6.2", notes:"Plain pH'd water (5.8–6.2) for 5–7 days. Tropical terpenes really shine after a proper flush.", biogrow:"—", biobloom:"—", lemon:"—" },
+  },
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+const state = {
+  active: Object.fromEntries(PLANTS.map(p => [p.id, true])),
+  stages: Object.fromEntries(PLANTS.map(p => [p.id, p.stages[0]])),
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function lvlClass(level) {
+  return level === "very high" ? "lvl-vhigh" : "lvl-" + level;
+}
+
+function fertPills(data) {
+  const map = [
+    { key:"biogrow",  label:"🌿 Bio Grow",  cls:"fert-grow"  },
+    { key:"biobloom", label:"🌸 Bio Bloom", cls:"fert-bloom" },
+    { key:"lemon",    label:"🍋 Primaster",  cls:"fert-lemon" },
+  ];
+  const pills = map
+    .filter(f => data[f.key] && data[f.key] !== "—")
+    .map(f => `<span class="fert-pill ${f.cls}">${f.label}: <strong>${data[f.key]}</strong></span>`)
+    .join("");
+  if (!pills) return `<span class="fert-pill fert-water">💧 Plain pH'd water only</span>`;
+  return pills;
+}
+
+// ── Render Plant Controls ─────────────────────────────────────────────────────
+function renderControls() {
+  const container = document.getElementById('plant-controls');
+  container.innerHTML = '<div class="plant-controls-grid">' + PLANTS.map(plant => `
+    <div class="plant-row ${state.active[plant.id] ? 'on' : ''}" id="row-${plant.id}">
+      <button class="toggle ${state.active[plant.id] ? 'on' : ''}" onclick="togglePlant('${plant.id}')"></button>
+      <span class="plant-emoji">${plant.emoji}</span>
+      <span class="plant-name">${plant.name}</span>
+      ${state.active[plant.id] ? `
+        <select onchange="setStage('${plant.id}', this.value)">
+          ${plant.stages.map(s => `<option value="${s}" ${state.stages[plant.id]===s?'selected':''}>${s}</option>`).join('')}
+        </select>` : ''}
+    </div>
+  `).join('') + '</div>';
+}
+
+function subClass(sub) {
+  if (sub.includes("strongly")) return "sub-strong";
+  if (sub.includes("⚠️")) return "sub-warn";
+  if (sub.includes("Either")) return "sub-both";
+  return "sub-coco";
+}
+
+// ── Render Results ────────────────────────────────────────────────────────────
+function renderResults() {
+  const container = document.getElementById('results');
+  const active = PLANTS.filter(p => state.active[p.id]);
+
+  if (!active.length) {
+    container.innerHTML = `<div class="empty-state"><div>🌱</div>Enable at least one plant above to see nutrient recommendations.</div>`;
+    return;
+  }
+
+  container.innerHTML = `<div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--green-dark);margin-bottom:16px">
+    📋 Nutrient targets for ${active.length} plant${active.length>1?'s':''}
+  </div><div class="results-grid">` + active.map(plant => {
+    const data = NUTRIENT_DATA[plant.id]?.[state.stages[plant.id]];
+    if (!data) return '';
+    return `
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-emoji">${plant.emoji}</span>
+        <div>
+          <div class="result-plant-name">${plant.name}</div>
+          <div class="result-stage">${state.stages[plant.id]}</div>
+        </div>
+        <div class="result-badges">
+          <span class="badge badge-ec">EC ${data.ec}</span>
+          <span class="badge badge-ph">pH ${data.ph}</span>
+        </div>
+      </div>
+      <div class="height-row">
+        <div class="height-pill"><span>📏</span> ${plant.height}</div>
+        <div class="height-pill"><span>🪣</span> Min ${plant.pot}</div>
+        <span class="sub-pill ${subClass(plant.substrate)}">${plant.substrate}</span>
+      </div>
+      <div class="nutrient-row">
+        ${['N','P','K','Ca','Mg'].map(n => `
+          <div class="nutrient-pill">
+            <span class="nutrient-label">${n}</span>
+            <span class="nutrient-val ${lvlClass(data[n].level)}">${data[n].val}</span>
+            <span class="nutrient-level ${lvlClass(data[n].level)}">${data[n].level === 'very high' ? 'Very High' : data[n].level.charAt(0).toUpperCase()+data[n].level.slice(1)}</span>
+          </div>`).join('')}
+      </div>
+      <div class="fert-row">${fertPills(data)}</div>
+      ${data.notes ? `<div class="notes-box">${data.notes}</div>` : ''}
+      ${plant.subNote ? `<div class="notes-box" style="border-left-color:#86efac;margin-top:6px;color:#166534">🌱 ${plant.subNote}</div>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function togglePlant(id) {
+  state.active[id] = !state.active[id];
+  renderControls();
+  renderResults();
+}
+function setStage(id, stage) {
+  state.stages[id] = stage;
+  renderResults();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderControls();
+renderResults();
+</script>
+</body>
+</html>
