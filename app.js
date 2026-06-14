@@ -88,7 +88,8 @@ async function handleAuth() {
       if (!name) { gv('auth-error').textContent = 'Display name is required.'; return; }
       const cred = await auth.createUserWithEmailAndPassword(email, password);
       await cred.user.updateProfile({ displayName: name });
-      await db.collection('users').doc(cred.user.uid).set({ email, displayName: name }, { merge: true });
+      // Best-effort save — don't block login if Firestore isn't ready yet
+      db.collection('users').doc(cred.user.uid).set({ email, displayName: name }, { merge: true }).catch(() => {});
     }
   } catch(e) { gv('auth-error').textContent = friendlyError(e.code); }
 }
@@ -125,14 +126,14 @@ function friendlyError(code) {
 }
 
 // Auth state observer
-auth.onAuthStateChanged(async user => {
+auth.onAuthStateChanged(user => {
   if (user) {
     currentUser = user;
-    // Ensure user doc exists
-    await db.collection('users').doc(user.uid).set({
+    // Best-effort: save user doc so others can find them by email for invites
+    db.collection('users').doc(user.uid).set({
       email: user.email,
       displayName: user.displayName || user.email
-    }, { merge: true });
+    }, { merge: true }).catch(() => {});
     showGardenScreen();
   } else {
     currentUser = null;
@@ -182,7 +183,6 @@ async function loadGardens() {
   try {
     const snap = await db.collection('gardens')
       .where('memberIds', 'array-contains', currentUser.uid)
-      .orderBy('createdAt', 'desc')
       .get();
 
     if (snap.empty) {
@@ -280,13 +280,12 @@ function setupListeners() {
 
   // Plant data
   dataUnsub = gardenRef.collection('plants')
-    .orderBy('_order')
     .onSnapshot(snap => {
       data = snap.docs.map(d => {
         const row = d.data();
         row._docId = d.id;
         return row;
-      });
+      }).sort((a, b) => (a._order ?? 0) - (b._order ?? 0));
       // Re-seed prefs for any new plants
       getPlantNames().forEach(name => {
         if (!plantPrefs[name]) {
