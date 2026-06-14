@@ -241,22 +241,36 @@ async function joinGarden() {
   const code = gv('join-code').value.trim().toUpperCase();
   if (!code) { showToast('Paste an invite code first.'); return; }
   try {
+    // Query gardens by invite code — rules must allow read for auth'd users
     const snap = await db.collection('gardens').where('inviteCode','==',code).limit(1).get();
     if (snap.empty) { showToast('No garden found with that code.'); return; }
-    const doc = snap.docs[0];
-    const g   = doc.data();
+    const docRef = snap.docs[0].ref;
+    const g      = snap.docs[0].data();
     if ((g.memberIds||[]).includes(currentUser.uid)) {
-      showToast('You\'re already in that garden!');
-      openGarden(doc.id); return;
+      showToast("You're already in that garden!");
+      openGarden(snap.docs[0].id); return;
     }
-    await doc.ref.update({
-      memberIds: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
-      [`members.${currentUser.uid}`]: { email: currentUser.email, displayName: currentUser.displayName||currentUser.email, role: 'member' }
+    // Build the full updated members map to avoid permission issues with partial updates
+    const newMembers = {
+      ...(g.members || {}),
+      [currentUser.uid]: {
+        email: currentUser.email,
+        displayName: currentUser.displayName || currentUser.email,
+        role: 'member'
+      }
+    };
+    const newMemberIds = [...(g.memberIds || []), currentUser.uid];
+    await docRef.update({
+      memberIds: newMemberIds,
+      members: newMembers
     });
     gv('join-code').value = '';
     showToast(`Joined "${g.name}"!`);
-    openGarden(doc.id);
-  } catch(e) { showToast('Error: ' + e.message); }
+    openGarden(snap.docs[0].id);
+  } catch(e) {
+    console.error('Join error:', e);
+    showToast('Error joining: ' + e.message);
+  }
 }
 
 async function openGarden(gardenId) {
