@@ -74,6 +74,9 @@ function switchAuthTab(mode) {
   gv('auth-name').style.display  = mode==='signup' ? '' : 'none';
   gv('auth-submit-btn').textContent = mode==='signin' ? 'Sign in' : 'Create account';
   gv('auth-error').textContent = '';
+  if (gv('auth-hint')) gv('auth-hint').textContent = mode==='signin'
+    ? 'Sign in to your myGarden account'
+    : 'Create a new myGarden account';
 }
 
 async function handleAuth() {
@@ -361,12 +364,14 @@ function renderPlantDashboard() {
     ).join('');
     return `
       <div class="plant-row${isOn?'':' off'}">
-        <label class="toggle toggle-wrap">
+        <label class="toggle">
           <input type="checkbox" ${isOn?'checked':''} onchange="togglePlant('${esc(name)}',this.checked)">
           <span class="toggle-slider"></span>
         </label>
-        <div class="plant-row-emoji">${emoji}</div>
-        <div class="plant-row-name">${label}<small>${data.find(r=>r['Plant']===name)?.['Genus']||''}</small></div>
+        <div class="plant-row-left">
+          <div class="plant-row-emoji">${emoji}</div>
+          <div class="plant-row-name">${label}<small>${data.find(r=>r['Plant']===name)?.['Genus']||''}</small></div>
+        </div>
         <select class="plant-row-select" onchange="setPlantStage('${esc(name)}',this.value)">${opts}</select>
       </div>`;
   }).join('');
@@ -442,6 +447,7 @@ function renderEditor() {
   const search = (gv('p3-search')?.value||'').toLowerCase();
   const rows   = data.filter(r => !search||r['Plant'].toLowerCase().includes(search)||(r['Genus']||'').toLowerCase().includes(search));
   gv('p3-count').textContent = `(${data.length} total)`;
+  // Desktop table
   gv('p3-tbody').innerHTML = rows.map(r => {
     const idx = data.indexOf(r);
     return `<tr>
@@ -456,6 +462,27 @@ function renderEditor() {
       </div></td>
     </tr>`;
   }).join('');
+  // Mobile cards
+  if (gv('p3-cards')) {
+    gv('p3-cards').innerHTML = rows.map(r => {
+      const idx = data.indexOf(r);
+      return `
+        <div class="editor-card">
+          <div class="editor-card-info">
+            <div class="editor-card-name">${r['Plant']}</div>
+            <div class="editor-card-meta">
+              <span class="stage-badge ${stageBadgeClass(r['Growth Stage'])}">${r['Growth Stage'].replace(/\n/g,' ')}</span>
+              <span class="editor-card-soil">${r['Soil Used']||''}</span>
+              <span class="npk-pill">${getN(r)}:${getP(r)}:${getK(r)}</span>
+            </div>
+          </div>
+          <div class="editor-card-actions">
+            <button class="btn sm" onclick="openModal(${idx})"><i class="ti ti-edit"></i></button>
+            <button class="btn sm danger" onclick="deleteRow(${idx})"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>`;
+    }).join('');
+  }
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────────
@@ -668,8 +695,9 @@ async function deleteGarden() {
 //  NAV + RENDER
 // ═══════════════════════════════════════════════════════════════════════════════
 function switchTab(idx) {
-  document.querySelectorAll('.page').forEach((p,i)    => p.classList.toggle('active', i===idx));
+  document.querySelectorAll('.page').forEach((p,i)     => p.classList.toggle('active', i===idx));
   document.querySelectorAll('.nav-tab').forEach((t,i)  => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.bottom-tab').forEach((t,i)=> t.classList.toggle('active', i===idx));
   if (idx === 3) renderMembers();
 }
 
