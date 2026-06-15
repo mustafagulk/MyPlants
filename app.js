@@ -409,6 +409,18 @@ function setPlantStage(name, stage) {
 // ═══════════════════════════════════════════════════════════════════════════════
 //  PAGE 2 — Cards
 // ═══════════════════════════════════════════════════════════════════════════════
+let cardCategory = 'All';
+
+function setCardCategory(cat) {
+  cardCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  renderCards();
+}
+
+function toggleCardDetails(cardEl) {
+  cardEl.classList.toggle('expanded');
+}
+
 function renderCards() {
   const search = (gv('p2-search')?.value||'').toLowerCase();
   const rows   = [];
@@ -420,38 +432,69 @@ function renderCards() {
     if (search && !name.toLowerCase().includes(search) && !(row['Genus']||'').toLowerCase().includes(search)) return;
     rows.push(row);
   });
-  gv('p2-count').textContent = `(${rows.length})`;
-  if (!rows.length) {
+
+  // Build category list from plant names (emoji = category)
+  const cats = ['All', ...new Set(rows.map(r => {
+    const cat = r['Plant'].split(' ')[0]; // emoji
+    return cat;
+  }))];
+
+  // Filter by category
+  const filtered = cardCategory === 'All' ? rows : rows.filter(r => r['Plant'].startsWith(cardCategory));
+
+  gv('p2-count').textContent = `(${filtered.length})`;
+
+  // Render category pills
+  const catBar = gv('p2-cat-bar');
+  if (catBar) {
+    catBar.innerHTML = cats.map(c => `
+      <button class="cat-btn${c === cardCategory ? ' active' : ''}" data-cat="${c}" onclick="setCardCategory('${c}')">
+        ${c === 'All' ? '🌿 All' : c}
+      </button>`).join('');
+  }
+
+  if (!filtered.length) {
     gv('p2-cards').innerHTML = `<div class="no-cards">No active plants. Toggle some on in "Your Plants".</div>`;
     return;
   }
-  gv('p2-cards').innerHTML = rows.map(r => `
-    <div class="plant-card">
+
+  gv('p2-cards').innerHTML = filtered.map((r, i) => {
+    const hasDetails = getCa(r) || getMg(r) || getOther(r) || getTips(r);
+    return `
+    <div class="plant-card" id="card-${i}">
       <div class="card-head">
         <div class="card-plant-name">${r['Plant']}</div>
         <div class="card-meta">
-          <span class="card-tag"><i class="ti ti-dna" style="font-size:12px"></i>${r['Genus']}</span>
-          <span class="card-tag"><i class="ti ti-shovel" style="font-size:12px"></i>${r['Soil Used']||'—'}</span>
+          <span class="card-tag"><i class="ti ti-dna" style="font-size:11px"></i>${r['Genus']}</span>
+          <span class="card-tag"><i class="ti ti-shovel" style="font-size:11px"></i>${r['Soil Used']||'—'}</span>
           <span class="stage-badge ${stageBadgeClass(r['Growth Stage'])}">${r['Growth Stage'].replace(/\n/g,' ')}</span>
         </div>
       </div>
       <div class="card-body">
         <div class="npk-row">
-          <div class="npk-box n"><div class="lbl">N ratio</div><div class="val">${getN(r)}</div></div>
-          <div class="npk-box p"><div class="lbl">P ratio</div><div class="val">${getP(r)}</div></div>
-          <div class="npk-box k"><div class="lbl">K ratio</div><div class="val">${getK(r)}</div></div>
+          <div class="npk-box n"><div class="lbl">N</div><div class="val">${getN(r)}</div></div>
+          <div class="npk-box p"><div class="lbl">P</div><div class="val">${getP(r)}</div></div>
+          <div class="npk-box k"><div class="lbl">K</div><div class="val">${getK(r)}</div></div>
         </div>
         <div class="npk-row">
           <div class="npk-box n"><div class="lbl">N mg/L</div><div class="val" style="font-size:11px">${getNmgl(r)}</div></div>
           <div class="npk-box p"><div class="lbl">P mg/L</div><div class="val" style="font-size:11px">${getPmgl(r)}</div></div>
           <div class="npk-box k"><div class="lbl">K mg/L</div><div class="val" style="font-size:11px">${getKmgl(r)}</div></div>
         </div>
-        ${getCa(r)    ? `<div class="card-divider"></div><div><div class="card-section-label">Calcium (Ca)</div><div class="card-section-text">${esc(getCa(r))}</div></div>` : ''}
-        ${getMg(r)    ? `<div><div class="card-section-label">Magnesium (Mg)</div><div class="card-section-text">${esc(getMg(r))}</div></div>` : ''}
-        ${getOther(r) ? `<div><div class="card-section-label">Other Nutrients</div><div class="card-section-text">${esc(getOther(r))}</div></div>` : ''}
-        ${getTips(r)  ? `<div class="card-divider"></div><div><div class="card-section-label" style="color:var(--accent)">Fertilizer Tips</div><div class="card-section-text">${esc(getTips(r))}</div></div>` : ''}
+        ${hasDetails ? `
+        <button class="card-expand-btn" onclick="toggleCardDetails(document.getElementById('card-${i}'))">
+          <span class="card-expand-label-show"><i class="ti ti-chevron-down"></i> Show details</span>
+          <span class="card-expand-label-hide"><i class="ti ti-chevron-up"></i> Hide details</span>
+        </button>
+        <div class="card-details">
+          ${getCa(r)    ? `<div class="card-divider"></div><div><div class="card-section-label">Calcium (Ca)</div><div class="card-section-text">${esc(getCa(r))}</div></div>` : ''}
+          ${getMg(r)    ? `<div><div class="card-section-label">Magnesium (Mg)</div><div class="card-section-text">${esc(getMg(r))}</div></div>` : ''}
+          ${getOther(r) ? `<div><div class="card-section-label">Other Nutrients</div><div class="card-section-text">${esc(getOther(r))}</div></div>` : ''}
+          ${getTips(r)  ? `<div class="card-divider"></div><div><div class="card-section-label" style="color:var(--accent)">Fertilizer Tips</div><div class="card-section-text">${esc(getTips(r))}</div></div>` : ''}
+        </div>` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

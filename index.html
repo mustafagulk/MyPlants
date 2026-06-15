@@ -166,6 +166,19 @@
     .stage-badge.year{background:#042c53;color:#b5d4f4}
   }
   .no-cards{text-align:center;padding:4rem;color:var(--text3);font-size:14px;grid-column:1/-1}
+  /* Category bar */
+  .cat-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+  .cat-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .cat-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .cat-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+  /* Collapsible card details */
+  .card-details{display:none;flex-direction:column;gap:.65rem;margin-top:.5rem}
+  .plant-card.expanded .card-details{display:flex}
+  .card-expand-btn{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;width:100%;justify-content:center;transition:background .15s;margin-top:4px}
+  .card-expand-btn:hover{background:var(--border);color:var(--text)}
+  .card-expand-label-hide{display:none}
+  .plant-card.expanded .card-expand-label-show{display:none}
+  .plant-card.expanded .card-expand-label-hide{display:flex;align-items:center;gap:5px}
 
   /* ── PAGE 3 — EDITOR (card-based on mobile) ── */
   .p3-header{display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
@@ -351,6 +364,7 @@
     <div class="search-row">
       <div class="search-input-wrap"><i class="ti ti-search"></i><input type="text" id="p2-search" placeholder="Search plants…" oninput="renderCards()"></div>
     </div>
+    <div class="cat-bar" id="p2-cat-bar"></div>
     <div class="cards-grid" id="p2-cards"></div>
   </div>
 
