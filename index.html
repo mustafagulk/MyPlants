@@ -169,6 +169,7 @@
   /* Fertilizer tags on plant cards */
   .fert-tags{display:flex;gap:6px;flex-wrap:wrap}
   .fert-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent-text);background:var(--accent-bg);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-weight:500}
+  .soil-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--warn);background:var(--warn-bg);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-weight:500}
   .linked-fert-detail{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;margin-top:6px}
   .linked-fert-name{font-size:13px;font-weight:600;margin-bottom:2px}
   .linked-fert-npk{font-size:11px;color:var(--text2);font-family:monospace}
@@ -351,7 +352,7 @@
         <button class="nav-tab active" onclick="switchTab(0)"><i class="ti ti-plant"></i> Your Plants</button>
         <button class="nav-tab" onclick="switchTab(1)"><i class="ti ti-layout-cards"></i> Cards</button>
         <button class="nav-tab" onclick="switchTab(2)"><i class="ti ti-edit"></i> Edit Data</button>
-        <button class="nav-tab" onclick="switchTab(3)"><i class="ti ti-flask"></i> Fertilizers</button>
+        <button class="nav-tab" onclick="switchTab(3)"><i class="ti ti-flask"></i> Soil & Fert.</button>
         <button class="nav-tab" onclick="switchTab(4)"><i class="ti ti-users"></i> Members</button>
       </div>
       <div class="nav-spacer"></div>
@@ -411,20 +412,20 @@
     </div>
   </div>
 
-  <!-- Page 3: Fertilizers -->
+  <!-- Page 3: Soil & Fertilizers -->
   <div class="page" id="page-3">
     <div class="p3-header">
-      <h1>Fertilizers <span class="count-badge" id="p4f-count"></span></h1>
-      <button class="btn primary" onclick="openFertModal(null)" style="margin-left:auto"><i class="ti ti-plus"></i> Add fertilizer</button>
+      <h1>Soil & Fertilizers <span class="count-badge" id="p4f-count"></span></h1>
+      <button class="btn primary" onclick="openFertModal(null)" style="margin-left:auto"><i class="ti ti-plus"></i> Add item</button>
     </div>
-    <p class="p4-subtitle">Manage your fertilizer products, then link them to a plant's growth stage from the Edit Data tab.</p>
+    <p class="p4-subtitle">Manage your soils and fertilizer products, then link them to plants from the Edit Data tab.</p>
     <div class="search-row">
       <div class="search-input-wrap"><i class="ti ti-search"></i><input type="text" id="p4-search" placeholder="Search fertilizers…" oninput="renderFertilizers()"></div>
     </div>
     <!-- Desktop table -->
     <div class="editor-table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>N : P : K</th><th>Cal</th><th>Mag</th><th>Sulfur</th><th>Other</th><th style="width:90px"></th></tr></thead>
+        <thead><tr><th>Name</th><th>Type</th><th>N : P : K</th><th>Cal</th><th>Mag</th><th>Sulfur</th><th>Other</th><th style="width:90px"></th></tr></thead>
         <tbody id="p4f-tbody"></tbody>
       </table>
     </div>
@@ -456,7 +457,7 @@
     <button class="bottom-tab active" onclick="switchTab(0)"><i class="ti ti-plant"></i>Plants</button>
     <button class="bottom-tab" onclick="switchTab(1)"><i class="ti ti-layout-cards"></i>Cards</button>
     <button class="bottom-tab" onclick="switchTab(2)"><i class="ti ti-edit"></i>Edit</button>
-    <button class="bottom-tab" onclick="switchTab(3)"><i class="ti ti-flask"></i>Fert.</button>
+    <button class="bottom-tab" onclick="switchTab(3)"><i class="ti ti-flask"></i>Soil/Fert</button>
     <button class="bottom-tab" onclick="switchTab(4)"><i class="ti ti-users"></i>Members</button>
     <button class="bottom-tab" onclick="showGardenScreen()"><i class="ti ti-layout-grid"></i>Switch</button>
   </nav>
@@ -500,15 +501,24 @@
   </div>
 </div>
 
-<!-- Fertilizer Modal -->
+<!-- Fertilizer/Soil Modal -->
 <div class="modal-overlay" id="fert-modal-overlay" onclick="closeFertModalOutside(event)">
   <div class="modal">
     <div class="modal-header">
-      <h2 id="fert-modal-title">Add fertilizer</h2>
+      <h2 id="fert-modal-title">Add item</h2>
       <button class="btn sm" onclick="closeFertModal()"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Name</label><input type="text" id="ff-name" placeholder="e.g. Canna CalMag"></div>
+      <div class="form-row-2">
+        <div class="form-group"><label>Name</label><input type="text" id="ff-name" placeholder="e.g. Canna CalMag"></div>
+        <div class="form-group"><label>Type</label>
+          <select id="ff-type" style="padding:8px 10px;font-size:14px;width:100%;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text)">
+            <option value="Liquid Fertilizer">Liquid Fertilizer</option>
+            <option value="Solid Fertilizer">Solid Fertilizer</option>
+            <option value="Soil">Soil</option>
+          </select>
+        </div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>N</label><input type="text" id="ff-n" placeholder="e.g. 5%"></div>
         <div class="form-group"><label>P</label><input type="text" id="ff-p" placeholder="e.g. 1%"></div>
@@ -545,6 +555,26 @@
     <div class="modal-footer">
       <button class="btn" onclick="closeLinkModal()">Cancel</button>
       <button class="btn primary" onclick="saveLinkedFerts()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link Soils Modal -->
+<div class="modal-overlay" id="soil-link-modal-overlay" onclick="closeSoilLinkModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Link soils</h2>
+        <div class="link-modal-subtitle" id="soil-link-modal-subtitle"></div>
+      </div>
+      <button class="btn sm" onclick="closeSoilLinkModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="soil-link-modal-list" class="link-fert-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeSoilLinkModal()">Cancel</button>
+      <button class="btn primary" onclick="saveLinkedSoils()"><i class="ti ti-check"></i> Save</button>
     </div>
   </div>
 </div>

@@ -398,11 +398,17 @@ async function addFertDoc(rowData) {
 
 async function deleteFertDoc(docId) {
   await db.collection('gardens').doc(currentGarden.id).collection('fertilizers').doc(docId).delete();
-  // Unlink from any plant rows that referenced it
-  const affected = data.filter(r => (r['_fertIds']||[]).includes(docId));
-  for (const row of affected) {
+  // Unlink from any plant rows that referenced it as fertilizer
+  const affectedFert = data.filter(r => (r['_fertIds']||[]).includes(docId));
+  for (const row of affectedFert) {
     const newIds = (row['_fertIds']||[]).filter(id => id !== docId);
     await savePlantDoc(row._docId, { ...row, _fertIds: newIds });
+  }
+  // Unlink from any plant rows that referenced it as soil
+  const affectedSoil = data.filter(r => (r['_soilIds']||[]).includes(docId));
+  for (const row of affectedSoil) {
+    const newIds = (row['_soilIds']||[]).filter(id => id !== docId);
+    await savePlantDoc(row._docId, { ...row, _soilIds: newIds });
   }
 }
 
@@ -508,7 +514,8 @@ function renderCards() {
 
   gv('p2-cards').innerHTML = filtered.map((r, i) => {
     const linkedFerts = getFertNamesFor(r);
-    const hasDetails = getCa(r) || getMg(r) || getOther(r) || getTips(r) || linkedFerts.length;
+    const linkedSoils = getSoilNamesFor(r);
+    const hasDetails = getCa(r) || getMg(r) || getOther(r) || getTips(r) || linkedFerts.length || linkedSoils.length;
     return `
     <div class="plant-card" id="card-${i}">
       <div class="card-head">
@@ -530,6 +537,10 @@ function renderCards() {
           <div class="npk-box p"><div class="lbl">P mg/L</div><div class="val" style="font-size:11px">${getPmgl(r)}</div></div>
           <div class="npk-box k"><div class="lbl">K mg/L</div><div class="val" style="font-size:11px">${getKmgl(r)}</div></div>
         </div>
+        ${linkedSoils.length ? `
+        <div class="fert-tags">
+          ${linkedSoils.map(f => `<span class="soil-tag">🪴 ${esc(f['Name'])}</span>`).join('')}
+        </div>` : ''}
         ${linkedFerts.length ? `
         <div class="fert-tags">
           ${linkedFerts.map(f => `<span class="fert-tag"><i class="ti ti-flask" style="font-size:11px"></i>${esc(f['Name'])}</span>`).join('')}
@@ -544,6 +555,14 @@ function renderCards() {
           ${getMg(r)    ? `<div><div class="card-section-label">Magnesium (Mg)</div><div class="card-section-text">${esc(getMg(r))}</div></div>` : ''}
           ${getOther(r) ? `<div><div class="card-section-label">Other Nutrients</div><div class="card-section-text">${esc(getOther(r))}</div></div>` : ''}
           ${getTips(r)  ? `<div class="card-divider"></div><div><div class="card-section-label" style="color:var(--accent)">Fertilizer Tips</div><div class="card-section-text">${esc(getTips(r))}</div></div>` : ''}
+          ${linkedSoils.length ? `<div class="card-divider"></div><div><div class="card-section-label" style="color:var(--warn)">Linked Soils</div>
+            ${linkedSoils.map(f => `
+              <div class="linked-fert-detail">
+                <div class="linked-fert-name">🪴 ${esc(f['Name'])}</div>
+                ${f['Other'] ? `<div class="linked-fert-other">${esc(f['Other'])}</div>` : ''}
+                ${f['Notes'] ? `<div class="linked-fert-notes">${esc(f['Notes'])}</div>` : ''}
+              </div>`).join('')}
+          </div>` : ''}
           ${linkedFerts.length ? `<div class="card-divider"></div><div><div class="card-section-label" style="color:var(--accent)">Linked Fertilizers</div>
             ${linkedFerts.map(f => `
               <div class="linked-fert-detail">
@@ -570,6 +589,7 @@ function renderEditor() {
   gv('p3-tbody').innerHTML = rows.map(r => {
     const idx = data.indexOf(r);
     const fertCount = (r['_fertIds']||[]).length;
+    const soilCount = (r['_soilIds']||[]).length;
     return `<tr>
       <td><strong>${r['Plant']}</strong></td>
       <td style="color:var(--text2);font-size:12px">${r['Genus']}</td>
@@ -577,6 +597,7 @@ function renderEditor() {
       <td><span class="stage-badge ${stageBadgeClass(r['Growth Stage'])}">${r['Growth Stage'].replace(/\n/g,' ')}</span></td>
       <td class="npk-pill">${getN(r)}:${getP(r)}:${getK(r)}</td>
       <td><div class="row-actions">
+        <button class="btn sm" onclick="openSoilLinkModal(${idx})" title="Link soils" style="${soilCount?'color:var(--warn)':''}">🪴${soilCount?` ${soilCount}`:''}</button>
         <button class="btn sm" onclick="openLinkModal(${idx})" title="Link fertilizers"><i class="ti ti-flask"></i>${fertCount?` ${fertCount}`:''}</button>
         <button class="btn sm" onclick="openModal(${idx})"><i class="ti ti-edit"></i></button>
         <button class="btn sm danger" onclick="deleteRow(${idx})"><i class="ti ti-trash"></i></button>
@@ -588,6 +609,7 @@ function renderEditor() {
     gv('p3-cards').innerHTML = rows.map(r => {
       const idx = data.indexOf(r);
       const fertCount = (r['_fertIds']||[]).length;
+      const soilCount = (r['_soilIds']||[]).length;
       return `
         <div class="editor-card">
           <div class="editor-card-info">
@@ -599,6 +621,7 @@ function renderEditor() {
             </div>
           </div>
           <div class="editor-card-actions">
+            <button class="btn sm" onclick="openSoilLinkModal(${idx})" title="Link soils" style="${soilCount?'color:var(--warn)':''}">🪴${soilCount?` ${soilCount}`:''}</button>
             <button class="btn sm" onclick="openLinkModal(${idx})" title="Link fertilizers"><i class="ti ti-flask"></i>${fertCount?` ${fertCount}`:''}</button>
             <button class="btn sm" onclick="openModal(${idx})"><i class="ti ti-edit"></i></button>
             <button class="btn sm danger" onclick="deleteRow(${idx})"><i class="ti ti-trash"></i></button>
@@ -717,16 +740,26 @@ function renderFertilizers() {
 
   const npkCell = f => `<span class="npk-pill">${f['N']||'—'}:${f['P']||'—'}:${f['K']||'—'}</span>`;
 
+  const typeLabel = f => {
+    const t = f['Type']||'';
+    if (t === 'Soil') return `<span style="font-size:11px;background:var(--warn-bg);color:var(--warn);border-radius:20px;padding:2px 7px;font-weight:500">🪴 Soil</span>`;
+    if (t === 'Solid Fertilizer') return `<span style="font-size:11px;background:var(--accent-bg);color:var(--accent-text);border-radius:20px;padding:2px 7px;font-weight:500">🧱 Solid</span>`;
+    if (t === 'Liquid Fertilizer') return `<span style="font-size:11px;background:var(--accent-bg);color:var(--accent-text);border-radius:20px;padding:2px 7px;font-weight:500">💧 Liquid</span>`;
+    return `<span style="font-size:11px;color:var(--text3)">${esc(t||'—')}</span>`;
+  };
+
   // Desktop table
   if (gv('p4f-tbody')) {
     gv('p4f-tbody').innerHTML = rows.map(f => {
       const idx = fertilizers.indexOf(f);
+      const isSoil = f['Type'] === 'Soil';
       return `<tr>
         <td><strong>${esc(f['Name'])}</strong></td>
-        <td class="npk-pill">${npkCell(f)}</td>
-        <td style="font-size:12px">${esc(f['Cal']||'—')}</td>
-        <td style="font-size:12px">${esc(f['Mag']||'—')}</td>
-        <td style="font-size:12px">${esc(f['Sulfur']||'—')}</td>
+        <td>${typeLabel(f)}</td>
+        <td class="npk-pill">${isSoil ? '<span style="color:var(--text3);font-size:12px">—</span>' : npkCell(f)}</td>
+        <td style="font-size:12px">${isSoil ? '—' : esc(f['Cal']||'—')}</td>
+        <td style="font-size:12px">${isSoil ? '—' : esc(f['Mag']||'—')}</td>
+        <td style="font-size:12px">${isSoil ? '—' : esc(f['Sulfur']||'—')}</td>
         <td style="font-size:12px;color:var(--text2)">${esc(f['Other']||'—')}</td>
         <td><div class="row-actions">
           <button class="btn sm" onclick="openFertModal(${idx})"><i class="ti ti-edit"></i></button>
@@ -739,14 +772,16 @@ function renderFertilizers() {
   if (gv('p4f-cards')) {
     gv('p4f-cards').innerHTML = rows.map(f => {
       const idx = fertilizers.indexOf(f);
+      const isSoil = f['Type'] === 'Soil';
       return `
         <div class="editor-card">
           <div class="editor-card-info">
             <div class="editor-card-name">${esc(f['Name'])}</div>
             <div class="editor-card-meta">
-              <span class="npk-pill">${npkCell(f)}</span>
-              ${f['Cal'] ? `<span class="editor-card-soil">Cal ${esc(f['Cal'])}</span>` : ''}
-              ${f['Mag'] ? `<span class="editor-card-soil">Mag ${esc(f['Mag'])}</span>` : ''}
+              ${typeLabel(f)}
+              ${!isSoil ? `<span class="npk-pill">${npkCell(f)}</span>` : ''}
+              ${!isSoil && f['Cal'] ? `<span class="editor-card-soil">Cal ${esc(f['Cal'])}</span>` : ''}
+              ${!isSoil && f['Mag'] ? `<span class="editor-card-soil">Mag ${esc(f['Mag'])}</span>` : ''}
             </div>
           </div>
           <div class="editor-card-actions">
@@ -757,8 +792,8 @@ function renderFertilizers() {
     }).join('');
   }
   if (!rows.length) {
-    if (gv('p4f-tbody')) gv('p4f-tbody').innerHTML = `<tr class="empty-row"><td colspan="7">No fertilizers yet. Add one to get started.</td></tr>`;
-    if (gv('p4f-cards')) gv('p4f-cards').innerHTML = search ? `<div class="no-cards">No fertilizers match your search.</div>` : `<div class="no-cards">No fertilizers yet. Add one to get started.</div>`;
+    if (gv('p4f-tbody')) gv('p4f-tbody').innerHTML = `<tr class="empty-row"><td colspan="8">No items yet. Add one to get started.</td></tr>`;
+    if (gv('p4f-cards')) gv('p4f-cards').innerHTML = search ? `<div class="no-cards">No items match your search.</div>` : `<div class="no-cards">No items yet. Add one to get started.</div>`;
   }
 }
 
@@ -766,9 +801,10 @@ function renderFertilizers() {
 let editFertIdx = null;
 function openFertModal(idx) {
   editFertIdx = idx;
-  gv('fert-modal-title').textContent = idx===null ? 'Add fertilizer' : 'Edit fertilizer';
+  gv('fert-modal-title').textContent = idx===null ? 'Add item' : 'Edit item';
   const f = idx!==null ? fertilizers[idx] : {};
   gv('ff-name').value   = f['Name']  || '';
+  gv('ff-type').value   = f['Type']  || 'Liquid Fertilizer';
   gv('ff-n').value      = f['N']     || '';
   gv('ff-p').value      = f['P']     || '';
   gv('ff-k').value      = f['K']     || '';
@@ -786,6 +822,7 @@ function closeFertModalOutside(e) { if (e.target===gv('fert-modal-overlay')) clo
 async function saveFertEntry() {
   const entry = {
     'Name':   gv('ff-name').value.trim(),
+    'Type':   gv('ff-type').value,
     'N':      gv('ff-n').value.trim(),
     'P':      gv('ff-p').value.trim(),
     'K':      gv('ff-k').value.trim(),
@@ -827,17 +864,21 @@ function openLinkModal(idx) {
   const row = data[idx];
   gv('link-modal-subtitle').textContent = `${row['Plant']} — ${(row['Growth Stage']||'').replace(/\n/g,' ')}`;
   const selectedIds = new Set(row['_fertIds']||[]);
-  if (!fertilizers.length) {
-    gv('link-modal-list').innerHTML = `<div class="no-cards" style="padding:1.5rem">No fertilizers yet. Add some in the Fertilizers tab first.</div>`;
+  const ferts = fertilizers.filter(f => f['Type'] !== 'Soil');
+  if (!ferts.length) {
+    gv('link-modal-list').innerHTML = `<div class="no-cards" style="padding:1.5rem">No fertilizers yet. Add some in the Soil & Fert. tab first.</div>`;
   } else {
-    gv('link-modal-list').innerHTML = fertilizers.map(f => `
+    gv('link-modal-list').innerHTML = ferts.map(f => {
+      const typeIcon = f['Type'] === 'Solid Fertilizer' ? '🧱' : '💧';
+      return `
       <label class="link-fert-row">
         <input type="checkbox" value="${f._docId}" ${selectedIds.has(f._docId)?'checked':''}>
         <div class="link-fert-info">
-          <div class="link-fert-name">${esc(f['Name'])}</div>
+          <div class="link-fert-name">${typeIcon} ${esc(f['Name'])}</div>
           <div class="link-fert-npk">N ${esc(f['N']||'—')} · P ${esc(f['P']||'—')} · K ${esc(f['K']||'—')}</div>
         </div>
-      </label>`).join('');
+      </label>`;
+    }).join('');
   }
   gv('link-modal-overlay').classList.add('open');
 }
@@ -853,6 +894,47 @@ async function saveLinkedFerts() {
     showToast('Fertilizers linked.');
     closeLinkModal();
   } catch(e) { showToast('Error linking: ' + e.message); }
+}
+
+// ── Linking soils to a Plant + Growth Stage row ────────────────────────────────
+let soilLinkRowIdx = null;
+function openSoilLinkModal(idx) {
+  soilLinkRowIdx = idx;
+  const row = data[idx];
+  gv('soil-link-modal-subtitle').textContent = `${row['Plant']} — ${(row['Growth Stage']||'').replace(/\n/g,' ')}`;
+  const selectedIds = new Set(row['_soilIds']||[]);
+  const soils = fertilizers.filter(f => f['Type'] === 'Soil');
+  if (!soils.length) {
+    gv('soil-link-modal-list').innerHTML = `<div class="no-cards" style="padding:1.5rem">No soils yet. Add some in the Soil & Fert. tab first.</div>`;
+  } else {
+    gv('soil-link-modal-list').innerHTML = soils.map(f => `
+      <label class="link-fert-row">
+        <input type="checkbox" value="${f._docId}" ${selectedIds.has(f._docId)?'checked':''}>
+        <div class="link-fert-info">
+          <div class="link-fert-name">🪴 ${esc(f['Name'])}</div>
+          <div class="link-fert-npk">${esc(f['Other']||f['Notes']||'')}</div>
+        </div>
+      </label>`).join('');
+  }
+  gv('soil-link-modal-overlay').classList.add('open');
+}
+function closeSoilLinkModal()         { gv('soil-link-modal-overlay').classList.remove('open'); soilLinkRowIdx = null; }
+function closeSoilLinkModalOutside(e) { if (e.target===gv('soil-link-modal-overlay')) closeSoilLinkModal(); }
+
+async function saveLinkedSoils() {
+  if (soilLinkRowIdx === null) return;
+  const checked = Array.from(gv('soil-link-modal-list').querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  const row = data[soilLinkRowIdx];
+  try {
+    await savePlantDoc(row._docId, { ...row, _soilIds: checked });
+    showToast('Soils linked.');
+    closeSoilLinkModal();
+  } catch(e) { showToast('Error linking: ' + e.message); }
+}
+
+function getSoilNamesFor(row) {
+  const ids = row && row['_soilIds'] ? row['_soilIds'] : [];
+  return ids.map(id => getFertById(id)).filter(Boolean);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
