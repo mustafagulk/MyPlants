@@ -166,6 +166,14 @@
     .stage-badge.year{background:#042c53;color:#b5d4f4}
   }
   .no-cards{text-align:center;padding:4rem;color:var(--text3);font-size:14px;grid-column:1/-1}
+  /* Fertilizer tags on plant cards */
+  .fert-tags{display:flex;gap:6px;flex-wrap:wrap}
+  .fert-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent-text);background:var(--accent-bg);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-weight:500}
+  .linked-fert-detail{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;margin-top:6px}
+  .linked-fert-name{font-size:13px;font-weight:600;margin-bottom:2px}
+  .linked-fert-npk{font-size:11px;color:var(--text2);font-family:monospace}
+  .linked-fert-other{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
+  .linked-fert-notes{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5;font-style:italic}
   /* Category bar */
   .cat-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
   .cat-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap}
@@ -265,6 +273,16 @@
   input[type="text"],input[type="email"],input[type="password"],textarea{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 10px;font-size:14px;color:var(--text);width:100%;font-family:inherit}
   input[type="text"]:focus,input[type="email"]:focus,input[type="password"]:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
   textarea{resize:vertical;min-height:65px;line-height:1.5}
+
+  /* ── LINK FERTILIZERS MODAL ── */
+  .link-modal-subtitle{font-size:12px;color:var(--text2);font-weight:400;margin-top:2px}
+  .link-fert-list{display:flex;flex-direction:column;gap:8px}
+  .link-fert-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;transition:background .12s,border-color .12s}
+  .link-fert-row:hover{background:var(--surface2);border-color:var(--accent)}
+  .link-fert-row input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;accent-color:var(--accent);cursor:pointer}
+  .link-fert-info{flex:1;min-width:0}
+  .link-fert-name{font-size:14px;font-weight:600}
+  .link-fert-npk{font-size:12px;color:var(--text2);font-family:monospace;margin-top:2px}
 </style>
 </head>
 <body>
@@ -333,7 +351,8 @@
         <button class="nav-tab active" onclick="switchTab(0)"><i class="ti ti-plant"></i> Your Plants</button>
         <button class="nav-tab" onclick="switchTab(1)"><i class="ti ti-layout-cards"></i> Cards</button>
         <button class="nav-tab" onclick="switchTab(2)"><i class="ti ti-edit"></i> Edit Data</button>
-        <button class="nav-tab" onclick="switchTab(3)"><i class="ti ti-users"></i> Members</button>
+        <button class="nav-tab" onclick="switchTab(3)"><i class="ti ti-flask"></i> Fertilizers</button>
+        <button class="nav-tab" onclick="switchTab(4)"><i class="ti ti-users"></i> Members</button>
       </div>
       <div class="nav-spacer"></div>
       <div class="nav-user">
@@ -392,8 +411,29 @@
     </div>
   </div>
 
-  <!-- Page 3: Members -->
+  <!-- Page 3: Fertilizers -->
   <div class="page" id="page-3">
+    <div class="p3-header">
+      <h1>Fertilizers <span class="count-badge" id="p4f-count"></span></h1>
+      <button class="btn primary" onclick="openFertModal(null)" style="margin-left:auto"><i class="ti ti-plus"></i> Add fertilizer</button>
+    </div>
+    <p class="p4-subtitle">Manage your fertilizer products, then link them to a plant's growth stage from the Edit Data tab.</p>
+    <div class="search-row">
+      <div class="search-input-wrap"><i class="ti ti-search"></i><input type="text" id="p4-search" placeholder="Search fertilizers…" oninput="renderFertilizers()"></div>
+    </div>
+    <!-- Desktop table -->
+    <div class="editor-table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>N : P : K</th><th>Cal</th><th>Mag</th><th>Sulfur</th><th>Other</th><th style="width:90px"></th></tr></thead>
+        <tbody id="p4f-tbody"></tbody>
+      </table>
+    </div>
+    <!-- Mobile cards -->
+    <div class="editor-cards" id="p4f-cards"></div>
+  </div>
+
+  <!-- Page 4: Members -->
+  <div class="page" id="page-4">
     <div class="p4-header"><h1>🌿 Members</h1></div>
     <p class="p4-subtitle">Everyone in this garden can view and edit plant data.</p>
     <div class="garden-section-title">Members</div>
@@ -416,7 +456,8 @@
     <button class="bottom-tab active" onclick="switchTab(0)"><i class="ti ti-plant"></i>Plants</button>
     <button class="bottom-tab" onclick="switchTab(1)"><i class="ti ti-layout-cards"></i>Cards</button>
     <button class="bottom-tab" onclick="switchTab(2)"><i class="ti ti-edit"></i>Edit</button>
-    <button class="bottom-tab" onclick="switchTab(3)"><i class="ti ti-users"></i>Members</button>
+    <button class="bottom-tab" onclick="switchTab(3)"><i class="ti ti-flask"></i>Fert.</button>
+    <button class="bottom-tab" onclick="switchTab(4)"><i class="ti ti-users"></i>Members</button>
     <button class="bottom-tab" onclick="showGardenScreen()"><i class="ti ti-layout-grid"></i>Switch</button>
   </nav>
 </div>
@@ -455,6 +496,55 @@
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn primary" onclick="saveEntry()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fertilizer Modal -->
+<div class="modal-overlay" id="fert-modal-overlay" onclick="closeFertModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="fert-modal-title">Add fertilizer</h2>
+      <button class="btn sm" onclick="closeFertModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Name</label><input type="text" id="ff-name" placeholder="e.g. Canna CalMag"></div>
+      <div class="form-row">
+        <div class="form-group"><label>N</label><input type="text" id="ff-n" placeholder="e.g. 5%"></div>
+        <div class="form-group"><label>P</label><input type="text" id="ff-p" placeholder="e.g. 1%"></div>
+        <div class="form-group"><label>K</label><input type="text" id="ff-k" placeholder="e.g. 4%"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cal</label><input type="text" id="ff-cal" placeholder="e.g. 1.5%"></div>
+        <div class="form-group"><label>Mag</label><input type="text" id="ff-mag" placeholder="e.g. 0.5%"></div>
+        <div class="form-group"><label>Sulfur</label><input type="text" id="ff-sulfur" placeholder="e.g. 0.3%"></div>
+      </div>
+      <div class="form-group"><label>Other</label><textarea id="ff-other" rows="2" placeholder="Iron, zinc, boron, etc."></textarea></div>
+      <div class="form-group"><label>Notes</label><textarea id="ff-notes" rows="2" placeholder="Dosage, brand, mixing tips…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeFertModal()">Cancel</button>
+      <button class="btn primary" onclick="saveFertEntry()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link Fertilizers Modal -->
+<div class="modal-overlay" id="link-modal-overlay" onclick="closeLinkModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Link fertilizers</h2>
+        <div class="link-modal-subtitle" id="link-modal-subtitle"></div>
+      </div>
+      <button class="btn sm" onclick="closeLinkModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="link-modal-list" class="link-fert-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn primary" onclick="saveLinkedFerts()"><i class="ti ti-check"></i> Save</button>
     </div>
   </div>
 </div>
