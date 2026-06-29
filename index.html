@@ -409,6 +409,8 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn danger" onclick="resetToDefault()"><i class="ti ti-refresh"></i> Reset to original</button>
       <button class="btn" onclick="exportData()"><i class="ti ti-download"></i> Export JSON</button>
+      <button class="btn" onclick="importData()"><i class="ti ti-upload"></i> Import JSON</button>
+      <input type="file" id="import-json-input" accept=".json,application/json" style="display:none" onchange="handleImportFile(this)">
     </div>
   </div>
 

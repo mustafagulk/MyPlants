@@ -732,6 +732,52 @@ function exportData() {
   a.click();
 }
 
+function importData() {
+  gv('import-json-input').value = '';
+  gv('import-json-input').click();
+}
+
+async function handleImportFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  let parsed;
+  try {
+    const text = await file.text();
+    parsed = JSON.parse(text);
+  } catch (e) {
+    showToast('❌ Invalid JSON file.'); return;
+  }
+  if (!Array.isArray(parsed) || !parsed.length) {
+    showToast('❌ JSON must be a non-empty array.'); return;
+  }
+  if (!parsed[0]['Plant']) {
+    showToast('❌ Rows must have a "Plant" field.'); return;
+  }
+  if (!confirm(`Import ${parsed.length} rows? This will replace all current plant data.`)) return;
+  try {
+    // Delete all existing plant docs
+    const col = db.collection('gardens').doc(currentGarden.id).collection('data');
+    const existing = await col.get();
+    const delBatch = db.batch();
+    existing.docs.forEach(d => delBatch.delete(d.ref));
+    await delBatch.commit();
+    // Write imported rows in batches of 500
+    const chunks = [];
+    for (let i = 0; i < parsed.length; i += 500) chunks.push(parsed.slice(i, i + 500));
+    for (const chunk of chunks) {
+      const batch = db.batch();
+      chunk.forEach(row => {
+        const { _docId, ...clean } = row; // strip internal id if present
+        batch.set(col.doc(), clean);
+      });
+      await batch.commit();
+    }
+    showToast(`✅ Imported ${parsed.length} rows.`);
+  } catch (e) {
+    showToast('❌ Import failed: ' + e.message);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //  PAGE 4 — Fertilizers
 // ═══════════════════════════════════════════════════════════════════════════════
