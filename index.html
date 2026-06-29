@@ -400,7 +400,7 @@
     <!-- Desktop table -->
     <div class="editor-table-wrap">
       <table>
-        <thead><tr><th>Plant</th><th>Genus</th><th>Soil</th><th>Growth Stage</th><th>N:P:K</th><th style="width:90px"></th></tr></thead>
+        <thead><tr><th>Plant</th><th>Genus</th><th>Growth Stage</th><th>N:P:K</th><th style="width:120px"></th></tr></thead>
         <tbody id="p3-tbody"></tbody>
       </table>
     </div>
@@ -475,9 +475,25 @@
         <div class="form-group"><label>Plant name</label><input type="text" id="f-plant" placeholder="🍅 Tomato"></div>
         <div class="form-group"><label>Genus</label><input type="text" id="f-genus" placeholder="San Marzano"></div>
       </div>
+      <div class="form-group"><label>Growth stage</label><input type="text" id="f-stage" placeholder="Vegetative (weeks 1–4)"></div>
       <div class="form-row-2">
-        <div class="form-group"><label>Soil used</label><input type="text" id="f-soil" placeholder="Coco / Potting"></div>
-        <div class="form-group"><label>Growth stage</label><input type="text" id="f-stage" placeholder="Vegetative (weeks 1–4)"></div>
+        <div class="form-group"><label>Winter Hardy</label>
+          <select id="f-winter-hardy" style="padding:8px 10px;font-size:14px;width:100%;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text)">
+            <option value="">— select —</option>
+            <option value="Yes">Yes</option>
+            <option value="Partially">Partially</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Propagation</label>
+          <select id="f-propagation" style="padding:8px 10px;font-size:14px;width:100%;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text)">
+            <option value="">— select —</option>
+            <option value="Clippings">Clippings</option>
+            <option value="Seeds">Seeds</option>
+            <option value="Other">Other</option>
+            <option value="No">No</option>
+          </select>
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>N ratio</label><input type="text" id="f-n-ratio" placeholder="3"></div>
@@ -512,12 +528,16 @@
       <div class="form-row-2">
         <div class="form-group"><label>Name</label><input type="text" id="ff-name" placeholder="e.g. Canna CalMag"></div>
         <div class="form-group"><label>Type</label>
-          <select id="ff-type" style="padding:8px 10px;font-size:14px;width:100%;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text)">
+          <select id="ff-type" onchange="onFertTypeChange()" style="padding:8px 10px;font-size:14px;width:100%;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text)">
             <option value="Liquid Fertilizer">Liquid Fertilizer</option>
             <option value="Solid Fertilizer">Solid Fertilizer</option>
             <option value="Soil">Soil</option>
           </select>
         </div>
+      </div>
+      <div class="form-group" id="ff-ph-group" style="display:none">
+        <label>pH Value</label>
+        <input type="text" id="ff-ph" placeholder="e.g. 6.0–6.5">
       </div>
       <div class="form-row">
         <div class="form-group"><label>N</label><input type="text" id="ff-n" placeholder="e.g. 5%"></div>

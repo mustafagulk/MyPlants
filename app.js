@@ -522,8 +522,9 @@ function renderCards() {
         <div class="card-plant-name">${r['Plant']}</div>
         <div class="card-meta">
           <span class="card-tag"><i class="ti ti-dna" style="font-size:11px"></i>${r['Genus']}</span>
-          <span class="card-tag"><i class="ti ti-shovel" style="font-size:11px"></i>${r['Soil Used']||'—'}</span>
           <span class="stage-badge ${stageBadgeClass(r['Growth Stage'])}">${r['Growth Stage'].replace(/\n/g,' ')}</span>
+          ${r['Winter Hardy'] ? `<span class="card-tag" title="Winter Hardy">❄️ ${esc(r['Winter Hardy'])}</span>` : ''}
+          ${r['Propagation']  ? `<span class="card-tag" title="Propagation">🌱 ${esc(r['Propagation'])}</span>`  : ''}
         </div>
       </div>
       <div class="card-body">
@@ -559,6 +560,7 @@ function renderCards() {
             ${linkedSoils.map(f => `
               <div class="linked-fert-detail">
                 <div class="linked-fert-name">🪴 ${esc(f['Name'])}</div>
+                ${f['pH'] ? `<div class="linked-fert-npk">pH ${esc(f['pH'])}</div>` : ''}
                 ${f['Other'] ? `<div class="linked-fert-other">${esc(f['Other'])}</div>` : ''}
                 ${f['Notes'] ? `<div class="linked-fert-notes">${esc(f['Notes'])}</div>` : ''}
               </div>`).join('')}
@@ -593,7 +595,6 @@ function renderEditor() {
     return `<tr>
       <td><strong>${r['Plant']}</strong></td>
       <td style="color:var(--text2);font-size:12px">${r['Genus']}</td>
-      <td style="font-size:12px">${r['Soil Used']||'—'}</td>
       <td><span class="stage-badge ${stageBadgeClass(r['Growth Stage'])}">${r['Growth Stage'].replace(/\n/g,' ')}</span></td>
       <td class="npk-pill">${getN(r)}:${getP(r)}:${getK(r)}</td>
       <td><div class="row-actions">
@@ -616,7 +617,6 @@ function renderEditor() {
             <div class="editor-card-name">${r['Plant']}</div>
             <div class="editor-card-meta">
               <span class="stage-badge ${stageBadgeClass(r['Growth Stage'])}">${r['Growth Stage'].replace(/\n/g,' ')}</span>
-              <span class="editor-card-soil">${r['Soil Used']||''}</span>
               <span class="npk-pill">${getN(r)}:${getP(r)}:${getK(r)}</span>
             </div>
           </div>
@@ -639,8 +639,9 @@ function openModal(idx) {
   const r = idx!==null ? data[idx] : {};
   gv('f-plant').value   = r['Plant']||'';
   gv('f-genus').value   = r['Genus']||'';
-  gv('f-soil').value    = r['Soil Used']||'';
   gv('f-stage').value   = (r['Growth Stage']||'').replace(/\n/g,' ');
+  gv('f-winter-hardy').value = r['Winter Hardy']||'';
+  gv('f-propagation').value  = r['Propagation']||'';
   gv('f-n-ratio').value = getN(r);
   gv('f-p-ratio').value = getP(r);
   gv('f-k-ratio').value = getK(r);
@@ -659,10 +660,11 @@ function closeModalOutside(e) { if (e.target===gv('modal-overlay')) closeModal()
 
 async function saveEntry() {
   const entry = {
-    'Plant':        gv('f-plant').value.trim(),
-    'Genus':        gv('f-genus').value.trim(),
-    'Soil Used':    gv('f-soil').value.trim(),
-    'Growth Stage': gv('f-stage').value.trim(),
+    'Plant':          gv('f-plant').value.trim(),
+    'Genus':          gv('f-genus').value.trim(),
+    'Growth Stage':   gv('f-stage').value.trim(),
+    'Winter Hardy':   gv('f-winter-hardy').value,
+    'Propagation':    gv('f-propagation').value,
     'N\n(ratio)':   gv('f-n-ratio').value.trim(),
     'P\n(ratio)':   gv('f-p-ratio').value.trim(),
     'K\n(ratio)':   gv('f-k-ratio').value.trim(),
@@ -757,7 +759,7 @@ function renderFertilizers() {
         <td><strong>${esc(f['Name'])}</strong></td>
         <td>${typeLabel(f)}</td>
         <td class="npk-pill">${isSoil ? '<span style="color:var(--text3);font-size:12px">—</span>' : npkCell(f)}</td>
-        <td style="font-size:12px">${isSoil ? '—' : esc(f['Cal']||'—')}</td>
+        <td style="font-size:12px">${isSoil ? (f['pH'] ? `pH ${esc(f['pH'])}` : '—') : esc(f['Cal']||'—')}</td>
         <td style="font-size:12px">${isSoil ? '—' : esc(f['Mag']||'—')}</td>
         <td style="font-size:12px">${isSoil ? '—' : esc(f['Sulfur']||'—')}</td>
         <td style="font-size:12px;color:var(--text2)">${esc(f['Other']||'—')}</td>
@@ -780,6 +782,7 @@ function renderFertilizers() {
             <div class="editor-card-meta">
               ${typeLabel(f)}
               ${!isSoil ? `<span class="npk-pill">${npkCell(f)}</span>` : ''}
+              ${isSoil && f['pH'] ? `<span class="editor-card-soil">pH ${esc(f['pH'])}</span>` : ''}
               ${!isSoil && f['Cal'] ? `<span class="editor-card-soil">Cal ${esc(f['Cal'])}</span>` : ''}
               ${!isSoil && f['Mag'] ? `<span class="editor-card-soil">Mag ${esc(f['Mag'])}</span>` : ''}
             </div>
@@ -798,6 +801,11 @@ function renderFertilizers() {
 }
 
 // ── Fertilizer modal ──────────────────────────────────────────────────────────
+function onFertTypeChange() {
+  const isSoil = gv('ff-type').value === 'Soil';
+  gv('ff-ph-group').style.display = isSoil ? '' : 'none';
+}
+
 let editFertIdx = null;
 function openFertModal(idx) {
   editFertIdx = idx;
@@ -805,6 +813,7 @@ function openFertModal(idx) {
   const f = idx!==null ? fertilizers[idx] : {};
   gv('ff-name').value   = f['Name']  || '';
   gv('ff-type').value   = f['Type']  || 'Liquid Fertilizer';
+  gv('ff-ph').value     = f['pH']    || '';
   gv('ff-n').value      = f['N']     || '';
   gv('ff-p').value      = f['P']     || '';
   gv('ff-k').value      = f['K']     || '';
@@ -813,6 +822,7 @@ function openFertModal(idx) {
   gv('ff-sulfur').value = f['Sulfur']|| '';
   gv('ff-other').value  = f['Other'] || '';
   gv('ff-notes').value  = f['Notes'] || '';
+  onFertTypeChange();
   gv('fert-modal-overlay').classList.add('open');
   gv('ff-name').focus();
 }
@@ -823,6 +833,7 @@ async function saveFertEntry() {
   const entry = {
     'Name':   gv('ff-name').value.trim(),
     'Type':   gv('ff-type').value,
+    'pH':     gv('ff-ph').value.trim(),
     'N':      gv('ff-n').value.trim(),
     'P':      gv('ff-p').value.trim(),
     'K':      gv('ff-k').value.trim(),
@@ -912,7 +923,7 @@ function openSoilLinkModal(idx) {
         <input type="checkbox" value="${f._docId}" ${selectedIds.has(f._docId)?'checked':''}>
         <div class="link-fert-info">
           <div class="link-fert-name">🪴 ${esc(f['Name'])}</div>
-          <div class="link-fert-npk">${esc(f['Other']||f['Notes']||'')}</div>
+          <div class="link-fert-npk">${f['pH'] ? `pH ${esc(f['pH'])}` : ''}${f['Other'] ? (f['pH']?' · ':'')+esc(f['Other']) : ''}</div>
         </div>
       </label>`).join('');
   }
@@ -1071,4 +1082,4 @@ function showToast(msg) {
 // ═══════════════════════════════════════════════════════════════════════════════
 //  DEFAULT DATA (seed for new gardens)
 // ═══════════════════════════════════════════════════════════════════════════════
-const DEFAULT_DATA = [{"Plant":"🍅 Tomato","Genus":"San Marzano","Soil Used":"Potting","Growth Stage":"Seedling\n(weeks 1–3)","N\n(ratio)":"2","P\n(ratio)":"1","K\n(ratio)":"2","N\n(mg/L)":"100–150 mg/L","P\n(mg/L)":"50–80 mg/L","K\n(mg/L)":"100–150 mg/L","Calcium (Ca)":"High – 150–200 ppm\nPrevents blossom-end rot later. Start Cal early.","Magnesium (Mg)":"Moderate – 40–60 ppm\nRequired for chlorophyll from day 1.","Other Nutrients":"Iron (Fe): 2–3 ppm – prevents yellowing between veins\nSulfur (S): 50 ppm – enzyme activity\nBoron (B): 0.5 ppm – cell division","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Use HIGH-N fert at low dose (½ strength). Add Canna CalMag every watering."},{"Plant":"🍅 Tomato","Genus":"San Marzano","Soil Used":"Potting","Growth Stage":"Vegetative\n(weeks 4–7)","N\n(ratio)":"4","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"150–250 mg/L","P\n(mg/L)":"40–60 mg/L","K\n(mg/L)":"200–300 mg/L","Calcium (Ca)":"High – 180–220 ppm\nKeep Ca elevated throughout to protect fruit cells.","Magnesium (Mg)":"Moderate – 50–70 ppm\nEpsom salt weekly if leaves pale between veins.","Other Nutrients":"Manganese (Mn): 1–2 ppm\nZinc (Zn): 0.5 ppm – enzyme function\nCopper (Cu): trace","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert at full dose. Add HIGH-K fert at ½ dose. Canna CalMag every watering."},{"Plant":"🍅 Tomato","Genus":"San Marzano","Soil Used":"Potting","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"1.5","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"80–120 mg/L","P\n(mg/L)":"60–80 mg/L","K\n(mg/L)":"300–400 mg/L","Calcium (Ca)":"Very High – 200–250 ppm\nCritical — low Ca = blossom-end rot (black bottom on tomatoes).","Magnesium (Mg)":"Moderate – 50–60 ppm\nMaintain steady Mg — deficiency shows as yellowing leaves.","Other Nutrients":"Boron (B): 0.5–1 ppm – essential for pollen & fruit set\nSilica (Si): 50–100 ppm – strengthens cell walls","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert as main feed. Keep HIGH-N very low. Canna CalMag every watering."},{"Plant":"🥔 Potato","Genus":"Unknown","Soil Used":"Coco","Growth Stage":"Vegetative\n(weeks 1–6)","N\n(ratio)":"3","P\n(ratio)":"1","K\n(ratio)":"4","N\n(mg/L)":"150–200 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"200–250 mg/L","Calcium (Ca)":"Moderate – 120–160 ppm\nLess critical than tomatoes but still needed.","Magnesium (Mg)":"Moderate – 40–60 ppm","Other Nutrients":"Sulfur (S): 50–70 ppm – improves flavour\nIron (Fe): 2 ppm\nMolybdenum (Mo): trace – nitrogen metabolism","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert at full dose. Mix in HIGH-K fert from week 3. CalMag at half dose."},{"Plant":"🥔 Potato","Genus":"Unknown","Soil Used":"Coco","Growth Stage":"Tuber Bulking\n(weeks 7–12)","N\n(ratio)":"1.5","P\n(ratio)":"1","K\n(ratio)":"7","N\n(mg/L)":"50–80 mg/L","P\n(mg/L)":"40–60 mg/L","K\n(mg/L)":"300–400 mg/L","Calcium (Ca)":"Moderate – 120–150 ppm","Magnesium (Mg)":"Moderate – 50 ppm\nMg supports starch synthesis in tubers.","Other Nutrients":"Sulfur (S): 60–80 ppm – most important micronutrient for potato quality\nZinc (Zn): 1 ppm","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Cut HIGH-N fert to ¼ dose or stop. Go heavy on HIGH-K fert. Continue CalMag."},{"Plant":"🍋 Lemon","Genus":"Lemon Citrus","Soil Used":"Potting","Growth Stage":"Year-round\n(Maintenance)","N\n(ratio)":"4.5","P\n(ratio)":"1","K\n(ratio)":"5.5","N\n(mg/L)":"150–200 mg/L","P\n(mg/L)":"30–50 mg/L","K\n(mg/L)":"200–250 mg/L","Calcium (Ca)":"High – 160–200 ppm\nCitrus is prone to Ca deficiency — fruit splitting and tip die-back.","Magnesium (Mg)":"High – 60–80 ppm\nMagnesium is critical for lemons — deficiency = yellowing old leaves. Most common problem.","Other Nutrients":"Iron (Fe): 3–5 ppm – citrus very prone to iron chlorosis\nManganese (Mn): 2–3 ppm\nZinc (Zn): 1–2 ppm – fruit size & set\nBoron (B): 0.5 ppm","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert as base. Add HIGH-K fert at ½ dose. Canna CalMag at full dose every watering — lemons demand it."},{"Plant":"🍋 Lemon","Genus":"Lemon Citrus","Soil Used":"Potting","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"2","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"100–150 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"250–350 mg/L","Calcium (Ca)":"Very High – 180–220 ppm\nPrevents fruit splitting during rapid growth.","Magnesium (Mg)":"High – 70–90 ppm\nMg deficiency peaks during fruiting — watch for yellow leaves.","Other Nutrients":"Boron (B): 0.5–1 ppm – very important for citrus fruit set\nCopper (Cu): 0.5 ppm\nSilica: helps rinds","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert. Add CalMag at full dose. Consider Epsom salt spray on leaves for Mg."},{"Plant":"🌶️ Red Chili","Genus":"Unknown","Soil Used":"Unknown","Growth Stage":"Vegetative\n(weeks 1–5)","N\n(ratio)":"3","P\n(ratio)":"1","K\n(ratio)":"3","N\n(mg/L)":"150–200 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"150–200 mg/L","Calcium (Ca)":"Moderate – 130–160 ppm\nBlossom-end rot possible in peppers too — keep Ca up.","Magnesium (Mg)":"Moderate – 40–60 ppm","Other Nutrients":"Iron (Fe): 2 ppm\nZinc (Zn): 0.5–1 ppm – affects capsaicin production\nBoron (B): 0.3 ppm","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert at full dose. CalMag every watering."},{"Plant":"🌶️ Red Chili","Genus":"Unknown","Soil Used":"Unknown","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"1.5","P\n(ratio)":"1","K\n(ratio)":"5.5","N\n(mg/L)":"80–120 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"280–380 mg/L","Calcium (Ca)":"High – 160–200 ppm\nBlossom-end rot is common in peppers — maintain Ca.","Magnesium (Mg)":"Moderate – 50 ppm","Other Nutrients":"Zinc (Zn): 1–2 ppm – boosts capsaicin levels\nBoron (B): 0.5 ppm – fruit set\nSulfur (S): 50 ppm – flavour compounds","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert as main feed. Minimal HIGH-N. CalMag every watering."},{"Plant":"🌿 Mint","Genus":"Unknown","Soil Used":"Coco","Growth Stage":"Year-round\n(Herb)","N\n(ratio)":"3.5","P\n(ratio)":"1","K\n(ratio)":"4","N\n(mg/L)":"80–120 mg/L","P\n(mg/L)":"20–40 mg/L","K\n(mg/L)":"100–150 mg/L","Calcium (Ca)":"Moderate – 100–140 ppm","Magnesium (Mg)":"Moderate – 30–50 ppm","Other Nutrients":"Iron (Fe): 1–2 ppm\nMagnesium (Mg): important for leaf colour\nSulfur (S): 30–40 ppm — menthol synthesis","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Bio Grow ¼–½ dose (1–2ml/L). Lemon fert 1ml/L for K+S."},{"Plant":"🍓 Strawberry","Genus":"Frageria","Soil Used":"Potting","Growth Stage":"Vegetative /\nRunner Stage","N\n(ratio)":"2","P\n(ratio)":"1","K\n(ratio)":"3","N\n(mg/L)":"100–150 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"150–200 mg/L","Calcium (Ca)":"High – 150–200 ppm\nPrevents tip burn on leaves — a common Ca deficiency symptom.","Magnesium (Mg)":"Moderate – 40–60 ppm","Other Nutrients":"Iron (Fe): 2 ppm – strawberries are prone to chlorosis\nBoron (B): 0.3–0.5 ppm\nMolybdenum (Mo): trace","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N at moderate dose. CalMag at full dose. Add HIGH-K at ¼ dose."},{"Plant":"🍓 Strawberry","Genus":"Frageria","Soil Used":"Potting","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"1","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"50–80 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"280–350 mg/L","Calcium (Ca)":"Very High – 180–220 ppm\nTip burn and poor fruit texture without Ca. Common problem.","Magnesium (Mg)":"Moderate – 50–60 ppm","Other Nutrients":"Boron (B): 0.5–1 ppm – key for fruit set and seed development\nSilica: 50 ppm – stronger plant","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert as main feed. Drop HIGH-N to trace. Full CalMag every watering."}];
+const DEFAULT_DATA = [{"Plant":"🍅 Tomato","Genus":"San Marzano","Growth Stage":"Seedling\n(weeks 1–3)","N\n(ratio)":"2","P\n(ratio)":"1","K\n(ratio)":"2","N\n(mg/L)":"100–150 mg/L","P\n(mg/L)":"50–80 mg/L","K\n(mg/L)":"100–150 mg/L","Calcium (Ca)":"High – 150–200 ppm\nPrevents blossom-end rot later. Start Cal early.","Magnesium (Mg)":"Moderate – 40–60 ppm\nRequired for chlorophyll from day 1.","Other Nutrients":"Iron (Fe): 2–3 ppm – prevents yellowing between veins\nSulfur (S): 50 ppm – enzyme activity\nBoron (B): 0.5 ppm – cell division","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Use HIGH-N fert at low dose (½ strength). Add Canna CalMag every watering."},{"Plant":"🍅 Tomato","Genus":"San Marzano","Growth Stage":"Vegetative\n(weeks 4–7)","N\n(ratio)":"4","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"150–250 mg/L","P\n(mg/L)":"40–60 mg/L","K\n(mg/L)":"200–300 mg/L","Calcium (Ca)":"High – 180–220 ppm\nKeep Ca elevated throughout to protect fruit cells.","Magnesium (Mg)":"Moderate – 50–70 ppm\nEpsom salt weekly if leaves pale between veins.","Other Nutrients":"Manganese (Mn): 1–2 ppm\nZinc (Zn): 0.5 ppm – enzyme function\nCopper (Cu): trace","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert at full dose. Add HIGH-K fert at ½ dose. Canna CalMag every watering."},{"Plant":"🍅 Tomato","Genus":"San Marzano","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"1.5","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"80–120 mg/L","P\n(mg/L)":"60–80 mg/L","K\n(mg/L)":"300–400 mg/L","Calcium (Ca)":"Very High – 200–250 ppm\nCritical — low Ca = blossom-end rot (black bottom on tomatoes).","Magnesium (Mg)":"Moderate – 50–60 ppm\nMaintain steady Mg — deficiency shows as yellowing leaves.","Other Nutrients":"Boron (B): 0.5–1 ppm – essential for pollen & fruit set\nSilica (Si): 50–100 ppm – strengthens cell walls","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert as main feed. Keep HIGH-N very low. Canna CalMag every watering."},{"Plant":"🥔 Potato","Genus":"Unknown","Growth Stage":"Vegetative\n(weeks 1–6)","N\n(ratio)":"3","P\n(ratio)":"1","K\n(ratio)":"4","N\n(mg/L)":"150–200 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"200–250 mg/L","Calcium (Ca)":"Moderate – 120–160 ppm\nLess critical than tomatoes but still needed.","Magnesium (Mg)":"Moderate – 40–60 ppm","Other Nutrients":"Sulfur (S): 50–70 ppm – improves flavour\nIron (Fe): 2 ppm\nMolybdenum (Mo): trace – nitrogen metabolism","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert at full dose. Mix in HIGH-K fert from week 3. CalMag at half dose."},{"Plant":"🥔 Potato","Genus":"Unknown","Growth Stage":"Tuber Bulking\n(weeks 7–12)","N\n(ratio)":"1.5","P\n(ratio)":"1","K\n(ratio)":"7","N\n(mg/L)":"50–80 mg/L","P\n(mg/L)":"40–60 mg/L","K\n(mg/L)":"300–400 mg/L","Calcium (Ca)":"Moderate – 120–150 ppm","Magnesium (Mg)":"Moderate – 50 ppm\nMg supports starch synthesis in tubers.","Other Nutrients":"Sulfur (S): 60–80 ppm – most important micronutrient for potato quality\nZinc (Zn): 1 ppm","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Cut HIGH-N fert to ¼ dose or stop. Go heavy on HIGH-K fert. Continue CalMag."},{"Plant":"🍋 Lemon","Genus":"Lemon Citrus","Growth Stage":"Year-round\n(Maintenance)","N\n(ratio)":"4.5","P\n(ratio)":"1","K\n(ratio)":"5.5","N\n(mg/L)":"150–200 mg/L","P\n(mg/L)":"30–50 mg/L","K\n(mg/L)":"200–250 mg/L","Calcium (Ca)":"High – 160–200 ppm\nCitrus is prone to Ca deficiency — fruit splitting and tip die-back.","Magnesium (Mg)":"High – 60–80 ppm\nMagnesium is critical for lemons — deficiency = yellowing old leaves. Most common problem.","Other Nutrients":"Iron (Fe): 3–5 ppm – citrus very prone to iron chlorosis\nManganese (Mn): 2–3 ppm\nZinc (Zn): 1–2 ppm – fruit size & set\nBoron (B): 0.5 ppm","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert as base. Add HIGH-K fert at ½ dose. Canna CalMag at full dose every watering — lemons demand it."},{"Plant":"🍋 Lemon","Genus":"Lemon Citrus","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"2","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"100–150 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"250–350 mg/L","Calcium (Ca)":"Very High – 180–220 ppm\nPrevents fruit splitting during rapid growth.","Magnesium (Mg)":"High – 70–90 ppm\nMg deficiency peaks during fruiting — watch for yellow leaves.","Other Nutrients":"Boron (B): 0.5–1 ppm – very important for citrus fruit set\nCopper (Cu): 0.5 ppm\nSilica: helps rinds","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert. Add CalMag at full dose. Consider Epsom salt spray on leaves for Mg."},{"Plant":"🌶️ Red Chili","Genus":"Unknown","Growth Stage":"Vegetative\n(weeks 1–5)","N\n(ratio)":"3","P\n(ratio)":"1","K\n(ratio)":"3","N\n(mg/L)":"150–200 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"150–200 mg/L","Calcium (Ca)":"Moderate – 130–160 ppm\nBlossom-end rot possible in peppers too — keep Ca up.","Magnesium (Mg)":"Moderate – 40–60 ppm","Other Nutrients":"Iron (Fe): 2 ppm\nZinc (Zn): 0.5–1 ppm – affects capsaicin production\nBoron (B): 0.3 ppm","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N fert at full dose. CalMag every watering."},{"Plant":"🌶️ Red Chili","Genus":"Unknown","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"1.5","P\n(ratio)":"1","K\n(ratio)":"5.5","N\n(mg/L)":"80–120 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"280–380 mg/L","Calcium (Ca)":"High – 160–200 ppm\nBlossom-end rot is common in peppers — maintain Ca.","Magnesium (Mg)":"Moderate – 50 ppm","Other Nutrients":"Zinc (Zn): 1–2 ppm – boosts capsaicin levels\nBoron (B): 0.5 ppm – fruit set\nSulfur (S): 50 ppm – flavour compounds","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert as main feed. Minimal HIGH-N. CalMag every watering."},{"Plant":"🌿 Mint","Genus":"Unknown","Growth Stage":"Year-round\n(Herb)","N\n(ratio)":"3.5","P\n(ratio)":"1","K\n(ratio)":"4","N\n(mg/L)":"80–120 mg/L","P\n(mg/L)":"20–40 mg/L","K\n(mg/L)":"100–150 mg/L","Calcium (Ca)":"Moderate – 100–140 ppm","Magnesium (Mg)":"Moderate – 30–50 ppm","Other Nutrients":"Iron (Fe): 1–2 ppm\nMagnesium (Mg): important for leaf colour\nSulfur (S): 30–40 ppm — menthol synthesis","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Bio Grow ¼–½ dose (1–2ml/L). Lemon fert 1ml/L for K+S."},{"Plant":"🍓 Strawberry","Genus":"Frageria","Growth Stage":"Vegetative /\nRunner Stage","N\n(ratio)":"2","P\n(ratio)":"1","K\n(ratio)":"3","N\n(mg/L)":"100–150 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"150–200 mg/L","Calcium (Ca)":"High – 150–200 ppm\nPrevents tip burn on leaves — a common Ca deficiency symptom.","Magnesium (Mg)":"Moderate – 40–60 ppm","Other Nutrients":"Iron (Fe): 2 ppm – strawberries are prone to chlorosis\nBoron (B): 0.3–0.5 ppm\nMolybdenum (Mo): trace","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"HIGH-N at moderate dose. CalMag at full dose. Add HIGH-K at ¼ dose."},{"Plant":"🍓 Strawberry","Genus":"Frageria","Growth Stage":"Flowering &\nFruiting","N\n(ratio)":"1","P\n(ratio)":"1","K\n(ratio)":"5","N\n(mg/L)":"50–80 mg/L","P\n(mg/L)":"50–70 mg/L","K\n(mg/L)":"280–350 mg/L","Calcium (Ca)":"Very High – 180–220 ppm\nTip burn and poor fruit texture without Ca. Common problem.","Magnesium (Mg)":"Moderate – 50–60 ppm","Other Nutrients":"Boron (B): 0.5–1 ppm – key for fruit set and seed development\nSilica: 50 ppm – stronger plant","Your Fertilizer Tips\n(High-N / High-K / Canna CalMag)":"Switch to HIGH-K fert as main feed. Drop HIGH-N to trace. Full CalMag every watering."}];
